@@ -47,3 +47,4 @@ class GroupViewSet(viewsets.ModelViewSet):
 class ItemsListPagination(PageNumberPagination):
     page_size = 16
     page_size_query_param = 'page_size'
+

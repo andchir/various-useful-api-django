@@ -34,4 +34,8 @@ urlpatterns = [
     path('api/v1/', include(router.urls)),
 ]
 
+urlpatterns += [
+    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
+]
+
 admin.site.site_header = 'Administration'
