@@ -33,3 +33,5 @@ urlpatterns = [
     path('api/v1/auth/', include('djoser.urls.jwt')),
     path('api/v1/', include(router.urls)),
 ]
+
+admin.site.site_header = 'Administration'
