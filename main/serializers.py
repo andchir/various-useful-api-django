@@ -64,7 +64,6 @@ class ProductModelSerializer(serializers.HyperlinkedModelSerializer):
     def create(self, validated_data):
         uploaded_images = validated_data.pop('uploaded_images')
         product = ProductModel.objects.create(**validated_data)
-        print('uploaded_images', uploaded_images)
 
         for image in uploaded_images:
             ImageModel.objects.create(product=product, image=image)
