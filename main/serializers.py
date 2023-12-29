@@ -2,7 +2,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 
-from main.models import ProductModel
+from main.models import ProductModel, ImageModel
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -33,14 +33,35 @@ class GroupSerializer(serializers.HyperlinkedModelSerializer):
         fields = ('url', 'name')
 
 
+class ImageModelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ImageModel
+        fields = '__all__'
+
+
 class ProductModelSerializer(serializers.HyperlinkedModelSerializer):
     id = serializers.ReadOnlyField()
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     lookup_field = 'id'
 
+    images = ImageModelSerializer(many=True, read_only=True)
+    uploaded_images = serializers.ListField(
+        child=serializers.ImageField(allow_empty_file=False, use_url=False),
+        write_only=True
+    )
+
     class Meta:
         model = ProductModel
         fields = '__all__'
+
+    def create(self, validated_data):
+        uploaded_images = validated_data.pop('uploaded_images')
+        product = ProductModel.objects.create(**validated_data)
+
+        for image in uploaded_images:
+            ImageModel.objects.create(product=product, image=image)
+
+        return product
 
 
 class ProductModelListSerializer(serializers.HyperlinkedModelSerializer):

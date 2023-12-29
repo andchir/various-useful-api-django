@@ -12,9 +12,9 @@ class ProductModel(models.Model):
 
     id = models.BigAutoField(primary_key=True)
     date_created = models.DateTimeField(auto_now_add=True)
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField(auto_now_add=False)
     user = models.ForeignKey(User, related_name='products', on_delete=models.CASCADE)
-    name = models.CharField(max_length=200, null=True)
+    name = models.CharField(max_length=200)
     published = models.BooleanField(default=False, null=True)
     price = models.FloatField()
     price_currency = models.CharField(max_length=10, choices=CURRENCIES_CHOICES)
@@ -34,12 +34,10 @@ class ProductModel(models.Model):
 
 class ImageModel(models.Model):
     product = models.ForeignKey(ProductModel, related_name='images', on_delete=models.CASCADE)
-    title = models.CharField(max_length=200)
     image = models.ImageField(upload_to='media/%Y/%m/%d/', blank=True)
 
     class Meta:
         db_table = 'images'
 
     def __str__(self):
-        return self.title
-
+        return "%s" % (self.product.name)

@@ -19,8 +19,8 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(primary_key=True, serialize=False)),
                 ('date_created', models.DateTimeField(auto_now_add=True)),
-                ('date', models.DateTimeField(auto_now_add=True)),
-                ('name', models.CharField(max_length=200, null=True)),
+                ('date', models.DateTimeField(auto_now_add=False)),
+                ('name', models.CharField(max_length=200)),
                 ('price', models.FloatField()),
                 ('price_currency', models.CharField(choices=[('Руб.', 'RUB'), ('EUR', 'EUR'), ('USD', 'USD')], max_length=10)),
                 ('shop_name', models.CharField(max_length=200, null=True)),

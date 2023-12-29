@@ -48,6 +48,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -152,6 +153,32 @@ REST_FRAMEWORK = {
     'URL_FORMAT_OVERRIDE': 'api_view_format',
     'FORMAT_SUFFIX_KWARG': 'api_view_format'
 }
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost",
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+    "http://localhost:8001",
+    "http://127.0.0.1:8001"
+]
+
+CORS_ORIGIN_WHITELIST = [
+    "http://localhost",
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+    "http://localhost:8001",
+    "http://127.0.0.1:8001"
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    "http://localhost",
+    "http://localhost:4200",
+    "http://127.0.0.1:4200",
+    "http://localhost:8001",
+]
+
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('APP_ENV') == 'dev'
+CORS_ALLOW_CREDENTIALS = os.environ.get('APP_ENV') == 'dev'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
