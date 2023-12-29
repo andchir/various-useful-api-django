@@ -24,13 +24,11 @@ from main import views
 router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
+router.register(r'products', views.ProductsViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
-    # path('', include('main.urls')),
-    path('api/v1/auth/', include('djoser.urls')),
-    path('api/v1/auth/', include('djoser.urls.jwt')),
     path('api/v1/', include(router.urls)),
 ]
 

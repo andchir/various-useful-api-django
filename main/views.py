@@ -8,7 +8,11 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 from rest_framework.pagination import PageNumberPagination
-from main.serializers import UserSerializer, GroupSerializer
+
+from main.filters import IsOwnerFilterBackend
+from main.models import ProductModel
+from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer
+from main.permissions import IsOwnerOnly
 
 
 # Create your views here.
@@ -48,3 +52,26 @@ class ItemsListPagination(PageNumberPagination):
     page_size = 16
     page_size_query_param = 'page_size'
 
+
+class ProductsViewSet(viewsets.ModelViewSet):
+    queryset = ProductModel.objects.all()
+    serializer_class = ProductModelSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOnly]
+    pagination_class = ItemsListPagination
+
+    filter_backends = [IsOwnerFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'requestUrl']
+    ordering_fields = ['date_created', 'name']
+    ordering = ['-id']
+
+    def list(self, request):
+        queryset = self.get_queryset()
+        queryset = self.filter_queryset(queryset)
+
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = ProductModelListSerializer(page, many=True, context={'request': request})
+            return self.get_paginated_response(serializer.data)
+
+        serializer = ProductModelListSerializer(queryset, many=True, context={'request': request})
+        return Response(serializer.data)

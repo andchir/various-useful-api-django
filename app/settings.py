@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'djoser',
-    'rest_framework_simplejwt',
     'corsheaders',
     'main.apps.MainConfig',
 ]
@@ -142,8 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
         'rest_framework.authentication.SessionAuthentication',
-        'rest_framework.authentication.BasicAuthentication',
-        'rest_framework_simplejwt.authentication.JWTAuthentication'
+        'rest_framework.authentication.BasicAuthentication'
     ],
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
@@ -154,3 +152,6 @@ REST_FRAMEWORK = {
     'URL_FORMAT_OVERRIDE': 'api_view_format',
     'FORMAT_SUFFIX_KWARG': 'api_view_format'
 }
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
