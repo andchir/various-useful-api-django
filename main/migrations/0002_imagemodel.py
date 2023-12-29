@@ -15,8 +15,7 @@ class Migration(migrations.Migration):
             name='ImageModel',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('title', models.CharField(max_length=200)),
-                ('image', models.ImageField(blank=True, upload_to='media/%Y/%m/%d/')),
+                ('image', models.ImageField(blank=True, upload_to='images/%Y/%m/%d/')),
                 ('product', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='images', to='main.productmodel')),
             ],
             options={

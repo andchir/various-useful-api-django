@@ -34,7 +34,7 @@ class ProductModel(models.Model):
 
 class ImageModel(models.Model):
     product = models.ForeignKey(ProductModel, related_name='images', on_delete=models.CASCADE)
-    image = models.ImageField(upload_to='media/%Y/%m/%d/', blank=True)
+    image = models.ImageField(upload_to='images/%Y/%m/%d/', blank=True)
 
     class Meta:
         db_table = 'images'
