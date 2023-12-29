@@ -30,3 +30,15 @@ class ProductModel(models.Model):
     def get_absolute_url(self):
         return reverse('product-detail', args=[str(self.id)])
 
+
+class ImageModel(models.Model):
+    product = models.ForeignKey(ProductModel, related_name='images', on_delete=models.CASCADE)
+    title = models.CharField(max_length=200)
+    image = models.ImageField(upload_to='media/%Y/%m/%d/', blank=True)
+
+    class Meta:
+        db_table = 'images'
+
+    def __str__(self):
+        return self.title
+

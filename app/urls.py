@@ -17,8 +17,10 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from django.urls import include, path
+from django.conf.urls.static import static
 from rest_framework import routers
 
+from app import settings
 from main import views
 
 router = routers.DefaultRouter(trailing_slash=False)
@@ -35,5 +37,8 @@ urlpatterns = [
 urlpatterns += [
     path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
 
 admin.site.site_header = 'Administration'
