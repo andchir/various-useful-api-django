@@ -44,6 +44,7 @@ class ProductModelSerializer(serializers.HyperlinkedModelSerializer):
     user = serializers.HiddenField(default=serializers.CurrentUserDefault())
     lookup_field = 'id'
 
+    published = serializers.ReadOnlyField()
     images = ImageModelSerializer(many=True, read_only=True)
     uploaded_images = serializers.ListField(
         child=serializers.ImageField(allow_empty_file=False, use_url=False),
