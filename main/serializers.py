@@ -27,6 +27,12 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
         return super(UserSerializer, self).update(instance, validated_data)
 
 
+class UserDataSerializer(serializers.HyperlinkedModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'groups')
+
+
 class GroupSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = Group
@@ -58,6 +64,7 @@ class ProductModelSerializer(serializers.HyperlinkedModelSerializer):
     def create(self, validated_data):
         uploaded_images = validated_data.pop('uploaded_images')
         product = ProductModel.objects.create(**validated_data)
+        print('uploaded_images', uploaded_images)
 
         for image in uploaded_images:
             ImageModel.objects.create(product=product, image=image)
@@ -67,7 +74,7 @@ class ProductModelSerializer(serializers.HyperlinkedModelSerializer):
 
 class ProductModelListSerializer(serializers.HyperlinkedModelSerializer):
     lookup_field = 'id'
-    user = UserSerializer(many=False, read_only=True)
+    user = UserDataSerializer(many=False, read_only=True)
 
     class Meta:
         model = ProductModel
