@@ -1,5 +1,6 @@
 from django.http import HttpResponse
 from django.contrib.auth.models import User, Group
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, filters, generics
 from rest_framework import permissions
 from rest_framework.response import Response
@@ -56,9 +57,10 @@ class ProductsViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOnly]
     pagination_class = ItemsListPagination
 
-    filter_backends = [IsOwnerFilterBackend, IsPublishedFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [IsOwnerFilterBackend, IsPublishedFilterBackend, DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'shop_name', 'city']
     ordering_fields = ['date_created', 'date', 'name']
+    filterset_fields = ['name', 'city', 'shop_name']
     ordering = ['-date']
 
     @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
