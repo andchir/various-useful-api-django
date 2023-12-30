@@ -63,8 +63,12 @@ class ProductsViewSet(viewsets.ModelViewSet):
 
     @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
     def list_names(self, request):
-        queryset = ProductModel.objects.order_by('name').values_list('name', flat=True).distinct()
-        queryset = self.filter_queryset(queryset)
+        queryset = ProductModel.objects.order_by('name').filter(published=True).values_list('name', flat=True).distinct()
+        return Response(list(queryset))
+
+    @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
+    def list_cities(self, request):
+        queryset = ProductModel.objects.order_by('city').filter(published=True).values_list('city', flat=True).distinct()
         return Response(list(queryset))
 
     def list(self, request):
