@@ -24,6 +24,7 @@ class ProductModel(models.Model):
 
     class Meta:
         db_table = 'products'
+        verbose_name = 'Product'
 
     def __str__(self):
         return self.name
