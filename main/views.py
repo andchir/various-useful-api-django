@@ -1,9 +1,6 @@
-import os
 from django.http import HttpResponse
-from django.shortcuts import render
-from django.template import Template, Context
 from django.contrib.auth.models import User, Group
-from rest_framework import status, viewsets, filters
+from rest_framework import status, viewsets, filters, generics
 from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
@@ -63,6 +60,12 @@ class ProductsViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'shop_name', 'city']
     ordering_fields = ['date_created', 'date', 'name']
     ordering = ['-date']
+
+    @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
+    def list_names(self, request):
+        queryset = ProductModel.objects.order_by('name').values_list('name', flat=True).distinct()
+        queryset = self.filter_queryset(queryset)
+        return Response(list(queryset))
 
     def list(self, request):
         queryset = self.get_queryset()
