@@ -19,7 +19,7 @@ class ProductModel(models.Model):
     price = models.FloatField()
     price_currency = models.CharField(max_length=10, choices=CURRENCIES_CHOICES)
     shop_name = models.CharField(max_length=200)
-    shop_address = models.CharField(max_length=200)
+    shop_address = models.CharField(max_length=200, blank=True, null=True)
     city = models.CharField(max_length=200)
 
     class Meta:
