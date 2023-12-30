@@ -9,7 +9,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view
 from rest_framework.pagination import PageNumberPagination
 
-from main.filters import IsOwnerFilterBackend
+from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
 from main.models import ProductModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer
 from main.permissions import IsOwnerOnly
@@ -59,10 +59,10 @@ class ProductsViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated, IsOwnerOnly]
     pagination_class = ItemsListPagination
 
-    filter_backends = [IsOwnerFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-    search_fields = ['name', 'requestUrl']
-    ordering_fields = ['date_created', 'name']
-    ordering = ['-id']
+    filter_backends = [IsOwnerFilterBackend, IsPublishedFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'shop_name', 'city']
+    ordering_fields = ['date_created', 'date', 'name']
+    ordering = ['-date']
 
     def list(self, request):
         queryset = self.get_queryset()

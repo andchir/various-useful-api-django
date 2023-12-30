@@ -73,8 +73,7 @@ class ProductModelSerializer(serializers.HyperlinkedModelSerializer):
 
 class ProductModelListSerializer(serializers.HyperlinkedModelSerializer):
     lookup_field = 'id'
-    user = UserDataSerializer(many=False, read_only=True)
 
     class Meta:
         model = ProductModel
-        fields = ('url', 'id', 'date', 'date_created', 'name', 'user')
+        fields = ('url', 'id', 'date', 'date_created', 'name', 'price', 'shop_name')

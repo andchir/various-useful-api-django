@@ -39,6 +39,7 @@ class ImageModel(models.Model):
 
     class Meta:
         db_table = 'images'
+        verbose_name = 'Photo'
 
     def __str__(self):
         return "%s" % (self.product.name)
