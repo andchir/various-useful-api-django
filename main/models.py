@@ -9,6 +9,10 @@ class ProductModel(models.Model):
         ('EUR', 'EUR'),
         ('USD', 'USD'),
     )
+    UNIT_CHOICES = (
+        ('piece', '1 штука'),
+        ('kg', '1 кг')
+    )
 
     id = models.BigAutoField(primary_key=True)
     date_created = models.DateTimeField(auto_now_add=True)
@@ -17,7 +21,8 @@ class ProductModel(models.Model):
     name = models.CharField(max_length=200)
     published = models.BooleanField(default=False)
     price = models.FloatField()
-    price_currency = models.CharField(max_length=10, choices=CURRENCIES_CHOICES)
+    price_currency = models.CharField(max_length=10, choices=CURRENCIES_CHOICES, default='RUB')
+    price_unit = models.CharField(max_length=10, choices=UNIT_CHOICES, default='piece')
     shop_name = models.CharField(max_length=200)
     shop_address = models.CharField(max_length=200, blank=True, null=True)
     city = models.CharField(max_length=200)
