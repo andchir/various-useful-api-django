@@ -29,7 +29,7 @@ SECRET_KEY = 'django-insecure-!0sl1fp*zw#)0pedg8s!u^gsue1)5*_)vc*4hzi#$##-_fa34a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('APP_ENV') == 'dev'
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'api.api2app.ru']
 
 
 # Application definition
