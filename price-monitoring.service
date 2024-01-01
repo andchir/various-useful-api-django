@@ -1,0 +1,18 @@
+[Unit]
+Description=gunicorn daemon
+Requires=price-monitoring.socket
+After=network.target
+
+[Service]
+User=andrew
+Group=www-data
+WorkingDirectory=/home/andrew/python_projects/price-monitoring-django
+ExecStart=/home/andrew/python_projects/price-monitoring-django/venv/bin/gunicorn \
+          --access-logfile - \
+          --error-logfile '/home/andrew/python_projects/price-monitoring-django/gunicorn-errors.txt' \
+          --workers 3 \
+          --bind unix:/run/gunicorn_price_monitoring.sock \
+          app.wsgi:application
+
+[Install]
+WantedBy=multi-user.target

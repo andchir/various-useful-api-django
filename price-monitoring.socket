@@ -1,0 +1,10 @@
+[Unit]
+Description=gunicorn socket
+
+[Socket]
+ListenStream=/run/gunicorn_price_monitoring.sock
+SocketUser=www-data
+SocketMode=600
+
+[Install]
+WantedBy=sockets.target
