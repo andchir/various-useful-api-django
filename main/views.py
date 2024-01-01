@@ -61,7 +61,7 @@ class ProductsViewSet(viewsets.ModelViewSet):
     search_fields = ['name', 'shop_name', 'city']
     ordering_fields = ['date_created', 'date', 'name']
     filterset_fields = ['name', 'city', 'shop_name']
-    ordering = ['-date']
+    ordering = ['date']
 
     @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
     def list_names(self, request):
