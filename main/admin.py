@@ -15,15 +15,16 @@ class ImageModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'image', 'product')
     list_display_links = ('id', 'image', 'product')
 
-    def delete_model(self, request, obj):
+    def delete_file(self, obj):
         image_file_path = os.path.join(settings.MEDIA_ROOT, str(obj.image))
         if os.path.isfile(image_file_path):
             os.remove(image_file_path)
+
+    def delete_model(self, request, obj):
+        self.delete_file(obj)
         obj.delete()
 
     def delete_queryset(self, request, queryset):
         for obj in queryset:
-            image_file_path = os.path.join(settings.MEDIA_ROOT, str(obj.image))
-            if os.path.isfile(image_file_path):
-                os.remove(image_file_path)
+            self.delete_file(obj)
         queryset.delete()
