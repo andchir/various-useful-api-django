@@ -3,6 +3,7 @@
 API for monitoring changes in prices for products.
 
 ![screenshot #1](https://github.com/andchir/price-monitoring-django/blob/main/screenshots/001.png?raw=true "Screenshot #1")
+![screenshot #2](https://github.com/andchir/price-monitoring-django/blob/main/screenshots/002.png?raw=true "Screenshot #2")
 
 Create superuser:
 ~~~
