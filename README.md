@@ -1,6 +1,10 @@
-# price-monitoring-django
+# Price monitoring API
 
-Create super user:
+API for monitoring changes in prices for products.
+
+
+
+Create superuser:
 ~~~
 python manage.py createsuperuser
 ~~~
@@ -11,7 +15,7 @@ python manage.py makemigrations
 python manage.py migrate
 ~~~
 
-# Deploy
+Deploy:
 ~~~
 sudo nano /etc/systemd/system/price-monitoring.service
 sudo nano /etc/systemd/system/price-monitoring.socket
