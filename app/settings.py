@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django_filters',
     'djoser',
     'corsheaders',
+    'django_advance_thumbnail',
     'main.apps.MainConfig',
 ]
 

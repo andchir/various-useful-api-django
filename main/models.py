@@ -1,6 +1,7 @@
 from django.db import models
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django_advance_thumbnail import AdvanceThumbnailField
 
 
 class ProductModel(models.Model):
@@ -41,6 +42,8 @@ class ProductModel(models.Model):
 class ImageModel(models.Model):
     product = models.ForeignKey(ProductModel, related_name='images', on_delete=models.CASCADE)
     image = models.ImageField(upload_to='images/%Y/%m/%d/', blank=True)
+    thumbnail = AdvanceThumbnailField(source_field='image', upload_to='thumbnails/%Y/%m/%d/', null=True, blank=True,
+                                      size=(400, 400))
 
     class Meta:
         db_table = 'images'
