@@ -1,5 +1,7 @@
 from django.http import HttpResponse
 from django.contrib.auth.models import User, Group
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import status, viewsets, filters, generics
 from rest_framework import permissions
@@ -52,6 +54,9 @@ class ItemsListPagination(PageNumberPagination):
 
 
 class ProductsViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint that allows products to be viewed or edited.
+    """
     queryset = ProductModel.objects.all()
     serializer_class = ProductModelSerializer
     permission_classes = [permissions.IsAuthenticated, IsOwnerOnly]
@@ -63,24 +68,32 @@ class ProductsViewSet(viewsets.ModelViewSet):
     filterset_fields = ['name', 'city', 'shop_name']
     ordering = ['date']
 
+    @method_decorator(cache_page(60 * 5))
     @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
     def list_names(self, request):
         queryset = (ProductModel.objects.order_by('name').filter(published=True)
                     .values_list('name', flat=True).distinct())
         return Response(list(queryset))
 
+    @method_decorator(cache_page(60 * 2))
     @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
     def list_cities(self, request):
         queryset = (ProductModel.objects.order_by('city').filter(published=True)
                     .values_list('city', flat=True).distinct())
         return Response(list(queryset))
 
+    @method_decorator(cache_page(60 * 2))
     @action(methods=['get'], detail=False, permission_classes=[permissions.IsAuthenticated])
     def list_shop_names(self, request):
         queryset = (ProductModel.objects.order_by('shop_name').filter(published=True)
                     .values_list('shop_name', flat=True).distinct())
         return Response(list(queryset))
 
+    @method_decorator(cache_page(60 * 2))
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+
+    @method_decorator(cache_page(60 * 2))
     def list(self, request):
         queryset = self.get_queryset()
         queryset = self.filter_queryset(queryset)

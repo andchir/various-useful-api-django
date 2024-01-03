@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'drf_yasg',
     'django_filters',
     'djoser',
     'corsheaders',
@@ -155,6 +156,13 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 10,
     'URL_FORMAT_OVERRIDE': 'api_view_format',
     'FORMAT_SUFFIX_KWARG': 'api_view_format'
+}
+
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': os.path.join(BASE_DIR, 'django_cache/'),
+    }
 }
 
 CORS_ALLOWED_ORIGINS = [
