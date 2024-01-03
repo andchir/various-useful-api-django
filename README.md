@@ -16,6 +16,11 @@ python manage.py makemigrations
 python manage.py migrate
 ~~~
 
+Generate API schema:
+~~~
+python manage.py spectacular --color --file schema.yml
+~~~
+
 Deploy:
 ~~~
 sudo nano /etc/systemd/system/price-monitoring.service
