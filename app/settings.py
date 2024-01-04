@@ -193,8 +193,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8001",
 ]
 
-CORS_ALLOW_ALL_ORIGINS = os.environ.get('APP_ENV') == 'dev'
-CORS_ALLOW_CREDENTIALS = os.environ.get('APP_ENV') == 'dev'
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
