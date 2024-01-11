@@ -76,6 +76,7 @@ class LogItemModel(models.Model):
     owner = models.ForeignKey(LogOwnerModel, related_name='log_items', on_delete=models.CASCADE)
     date_created = models.DateTimeField(auto_now_add=True)
     data = models.JSONField(blank=True, null=True)
+    uuid = models.UUIDField(default=uuid.uuid1, editable=True, blank=True, null=True)
 
     class Meta:
         db_table = 'log'

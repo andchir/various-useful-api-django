@@ -167,6 +167,11 @@ def create_log_record(request):
                             content_type='application/json', status=404)
 
     log_data = request.data
+
+    log_uuid = log_data['uid'] if 'uid' in log_data else ''
+    if not log_uuid and 'uuid' in log_data:
+        log_uuid = log_data['uuid']
+
     if log_data is None or len(log_data.keys()) == 0:
         for key in request.GET:
             if key == 'uuid':
@@ -177,6 +182,7 @@ def create_log_record(request):
     log_item.user = request.user
     log_item.owner = log_owner
     log_item.data = log_data
+    log_item.uuid = log_uuid
 
     log_item.save()
 
