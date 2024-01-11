@@ -160,7 +160,7 @@ def create_log_record(request):
         return HttpResponse(json.dumps({'success': True, 'message': 'Log owner not found.'}),
                             content_type='application/json', status=404)
 
-    log_owner = LogOwnerModel.objects.filter(uuid=uuid, user=request.user).first()
+    log_owner = LogOwnerModel.objects.filter(uuid=uuid).first()
 
     if log_owner is None:
         return HttpResponse(json.dumps({'success': True, 'message': 'Log owner not found.'}),
