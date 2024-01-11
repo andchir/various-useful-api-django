@@ -39,11 +39,14 @@ router = routers.DefaultRouter(trailing_slash=False)
 router.register(r'users', views.UserViewSet)
 router.register(r'groups', views.GroupViewSet)
 router.register(r'products', views.ProductsViewSet)
+router.register(r'log_owners', views.LogOwnerViewSet)
+router.register(r'log', views.LogItemsViewSet)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
     path('api/v1/', include(router.urls)),
+    path('api/v1/create_log_record', views.create_log_record, name='create_log_record'),
 ]
 
 urlpatterns += [

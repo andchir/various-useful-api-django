@@ -3,6 +3,7 @@ from django.urls import reverse
 from django.contrib.auth.models import User
 from django_advance_thumbnail import AdvanceThumbnailField
 from django_resized import ResizedImageField
+import uuid
 
 
 class ProductModel(models.Model):
@@ -53,3 +54,32 @@ class ImageModel(models.Model):
 
     def __str__(self):
         return "%s" % (self.product.name)
+
+
+class LogOwnerModel(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    date_created = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(User, related_name='log_owner', on_delete=models.CASCADE)
+    name = models.CharField(max_length=200)
+    uuid = models.UUIDField(default=uuid.uuid1, editable=False)
+
+    class Meta:
+        db_table = 'log_owners'
+        verbose_name = 'Log owner'
+
+    def __str__(self):
+        return "%s-%s" % (self.name, self.uuid)
+
+
+class LogItemModel(models.Model):
+    id = models.BigAutoField(primary_key=True)
+    owner = models.ForeignKey(LogOwnerModel, related_name='log_items', on_delete=models.CASCADE)
+    date_created = models.DateTimeField(auto_now_add=True)
+    data = models.JSONField(blank=True, null=True)
+
+    class Meta:
+        db_table = 'log'
+        verbose_name = 'Log'
+
+    def __str__(self):
+        return "%s-%s-%s" % (self.owner.name, self.owner.uuid, self.id)
