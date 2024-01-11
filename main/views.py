@@ -153,7 +153,6 @@ class LogItemsViewSet(viewsets.ModelViewSet):
 
 
 @api_view(['POST'])
-@permission_classes([permissions.IsAuthenticated])
 def create_log_record(request):
     uuid = request.GET['uuid'] if 'uuid' in request.GET else None
 
