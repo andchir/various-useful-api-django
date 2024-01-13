@@ -47,6 +47,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('api/v1/', include(router.urls)),
     path('api/v1/create_log_record', views.create_log_record, name='create_log_record'),
+    path('api/v1/create_log_record/<str:owner_id>', views.create_log_record, name='create_log_record_by_uuid'),
 ]
 
 urlpatterns += [

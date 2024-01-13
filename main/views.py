@@ -153,14 +153,15 @@ class LogItemsViewSet(viewsets.ModelViewSet):
 
 
 @api_view(['POST'])
-def create_log_record(request):
-    uuid = request.GET['uuid'] if 'uuid' in request.GET else None
+def create_log_record(request, owner_uuid=None):
+    if owner_uuid is None and 'uuid' in request.GET:
+        owner_uuid = request.GET['uuid']
 
-    if uuid is None:
+    if owner_uuid is None:
         return HttpResponse(json.dumps({'success': True, 'message': 'Log owner not found.'}),
                             content_type='application/json', status=404)
 
-    log_owner = LogOwnerModel.objects.filter(uuid=uuid).first()
+    log_owner = LogOwnerModel.objects.filter(uuid=owner_uuid).first()
 
     if log_owner is None:
         return HttpResponse(json.dumps({'success': True, 'message': 'Log owner not found.'}),
@@ -168,7 +169,7 @@ def create_log_record(request):
 
     log_data = request.data
 
-    log_uuid = log_data['uid'] if 'uid' in log_data else ''
+    log_uuid = log_data['uid'] if 'uid' in log_data else None
     if not log_uuid and 'uuid' in log_data:
         log_uuid = log_data['uuid']
 
