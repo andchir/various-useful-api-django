@@ -16,6 +16,11 @@ python manage.py makemigrations
 python manage.py migrate
 ~~~
 
+Copy all files from static folders into the STATIC_ROOT directory:
+~~~
+python manage.py collectstatic
+~~~
+
 Generate API schema:
 ~~~
 python manage.py spectacular --color --file schema.yml
