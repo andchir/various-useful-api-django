@@ -1,7 +1,7 @@
 import os.path
 from django.contrib import admin
 from app import settings
-from main.models import ProductModel, ImageModel
+from main.models import ProductModel, ImageModel, LogOwnerModel, LogItemModel
 
 
 @admin.register(ProductModel)
@@ -28,3 +28,15 @@ class ImageModelAdmin(admin.ModelAdmin):
         for obj in queryset:
             self.delete_file(obj)
         queryset.delete()
+
+
+@admin.register(LogOwnerModel)
+class ImageModelAdmin(admin.ModelAdmin):
+    list_display = ('id', 'name', 'uuid', 'date_created')
+    list_display_links = ('id', 'name')
+
+
+@admin.register(LogItemModel)
+class LogItemModel(admin.ModelAdmin):
+    list_display = ('id', 'uuid', 'owner', 'date_created')
+    list_display_links = ('id', 'uuid')
