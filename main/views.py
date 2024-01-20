@@ -15,6 +15,7 @@ from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer
 from main.permissions import IsOwnerOnly
+from pytube import YouTube
 
 
 # Create your views here.
@@ -188,5 +189,61 @@ def create_log_record(request, owner_uuid=None):
     log_item.save()
 
     output = {'success': True}
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@api_view(['POST'])
+def youtube_dl(request, action_name='info'):
+    url = request.data['url'] if 'url' in request.data else None
+    itag = request.data['itag'] if 'itag' in request.data else None
+    if url is None:
+        return HttpResponse(json.dumps({'success': False}), content_type='application/json', status=200)
+
+    try:
+        yt = YouTube(url, use_oauth=False, allow_oauth_cache=True)
+    except Exception as e:
+        return HttpResponse(json.dumps({'success': False, 'message': str(e)}), content_type='application/json',
+                            status=200)
+
+    if action_name == 'download' and itag:
+        stream = yt.streams.get_by_itag(int(itag))
+        output = {
+            'success': True,
+            'download_url': stream.url
+        }
+    else:
+        output = {
+            'success': True,
+            'author': yt.author,
+            'channel_id': yt.channel_id,
+            'channel_url': yt.channel_url,
+            'title': yt.title,
+            'description': yt.description,
+            'video_id': yt.video_id,
+            'thumbnail_url': yt.thumbnail_url,
+            'length': yt.length,
+            'publish_date': str(yt.publish_date),
+            'rating': yt.rating,
+            # 'vid_info': yt.vid_info,
+            'streams': []
+        }
+
+        for stream in yt.streams:
+            output['streams'].append({
+                'itag': stream.itag,
+                'type': stream.type,
+                'mime_type': stream.mime_type,
+                'subtype': stream.subtype,
+                'file_extension': stream.file_extension if hasattr(stream, 'file_extension') else None,
+                'bitrate': stream.bitrate,
+                'fps': stream.fps if hasattr(stream, 'fps') else None,
+                'resolution': stream.resolution if hasattr(stream, 'resolution') else None,
+                'resolution_string': f'{stream.mime_type} - {stream.resolution} - {int(stream.bitrate / 1024)} kb/sec'
+                if hasattr(stream, 'resolution') and stream.resolution
+                else f'{stream.mime_type} - {int(stream.bitrate / 1024)} kb/sec',
+                'video_codec': stream.video_codec,
+                'audio_codec': stream.audio_codec
+            })
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
