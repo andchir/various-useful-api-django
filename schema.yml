@@ -4,6 +4,36 @@ info:
   version: 1.0.0
   description: API for monitoring changes in prices for products.
 paths:
+  /api/v1/create_log_record:
+    post:
+      operationId: v1_create_log_record_create
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/create_log_record/{owner_uuid}:
+    post:
+      operationId: v1_create_log_record_create_2
+      parameters:
+      - in: path
+        name: owner_uuid
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
   /api/v1/groups:
     get:
       operationId: v1_groups_list
@@ -348,6 +378,770 @@ paths:
         schema:
           type: integer
         description: A unique integer value identifying this group.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/log:
+    get:
+      operationId: v1_log_list
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: owner__uuid
+        schema:
+          type: string
+          format: uuid
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLogItemsModelList'
+          description: ''
+    post:
+      operationId: v1_log_create
+      description: API endpoint that allows log to be viewed or edited.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogItemsModel'
+          description: ''
+  /api/v1/log.{api_view_format}/:
+    get:
+      operationId: v1_log._list
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - in: query
+        name: owner__uuid
+        schema:
+          type: string
+          format: uuid
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLogItemsModelList'
+          description: ''
+    post:
+      operationId: v1_log._create
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogItemsModel'
+          description: ''
+  /api/v1/log/{id}:
+    get:
+      operationId: v1_log_retrieve
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogItemsModel'
+          description: ''
+    put:
+      operationId: v1_log_update
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogItemsModel'
+          description: ''
+    patch:
+      operationId: v1_log_partial_update
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLogItemsModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLogItemsModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLogItemsModel'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogItemsModel'
+          description: ''
+    delete:
+      operationId: v1_log_destroy
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/log/{id}.{api_view_format}/:
+    get:
+      operationId: v1_log_._retrieve
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogItemsModel'
+          description: ''
+    put:
+      operationId: v1_log_._update
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogItemsModel'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogItemsModel'
+          description: ''
+    patch:
+      operationId: v1_log_._partial_update
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLogItemsModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLogItemsModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLogItemsModel'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogItemsModel'
+          description: ''
+    delete:
+      operationId: v1_log_._destroy
+      description: API endpoint that allows log to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/log_owners:
+    get:
+      operationId: v1_log_owners_list
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLogOwnerModelList'
+          description: ''
+    post:
+      operationId: v1_log_owners_create
+      description: API endpoint that allows log owners to be viewed or edited.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogOwnerModel'
+          description: ''
+  /api/v1/log_owners.{api_view_format}/:
+    get:
+      operationId: v1_log_owners._list
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedLogOwnerModelList'
+          description: ''
+    post:
+      operationId: v1_log_owners._create
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogOwnerModel'
+          description: ''
+  /api/v1/log_owners/{id}:
+    get:
+      operationId: v1_log_owners_retrieve
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log owner.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogOwnerModel'
+          description: ''
+    put:
+      operationId: v1_log_owners_update
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log owner.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogOwnerModel'
+          description: ''
+    patch:
+      operationId: v1_log_owners_partial_update
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log owner.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLogOwnerModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLogOwnerModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLogOwnerModel'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogOwnerModel'
+          description: ''
+    delete:
+      operationId: v1_log_owners_destroy
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log owner.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/v1/log_owners/{id}.{api_view_format}/:
+    get:
+      operationId: v1_log_owners_._retrieve
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log owner.
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogOwnerModel'
+          description: ''
+    put:
+      operationId: v1_log_owners_._update
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log owner.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LogOwnerModel'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogOwnerModel'
+          description: ''
+    patch:
+      operationId: v1_log_owners_._partial_update
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log owner.
+        required: true
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedLogOwnerModel'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedLogOwnerModel'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedLogOwnerModel'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LogOwnerModel'
+          description: ''
+    delete:
+      operationId: v1_log_owners_._destroy
+      description: API endpoint that allows log owners to be viewed or edited.
+      parameters:
+      - in: path
+        name: api_view_format
+        schema:
+          type: string
+          pattern: ^[a-z0-9]+$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this Log owner.
         required: true
       tags:
       - v1
@@ -1303,6 +2097,36 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: ''
+  /api/v1/youtube_dl:
+    post:
+      operationId: v1_youtube_dl_create
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
+  /api/v1/youtube_dl/{action_name}:
+    post:
+      operationId: v1_youtube_dl_create_2
+      parameters:
+      - in: path
+        name: action_name
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          description: No response body
 components:
   schemas:
     Group:
@@ -1336,6 +2160,61 @@ components:
       required:
       - id
       - product
+    LogItemsModel:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        id:
+          type: integer
+          readOnly: true
+        date_created:
+          type: string
+          format: date-time
+          readOnly: true
+        data:
+          nullable: true
+        uuid:
+          type: string
+          format: uuid
+          nullable: true
+        owner:
+          type: string
+          format: uri
+      required:
+      - date_created
+      - id
+      - owner
+      - url
+    LogOwnerModel:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        id:
+          type: integer
+          readOnly: true
+        date_created:
+          type: string
+          format: date-time
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
+      required:
+      - date_created
+      - id
+      - name
+      - url
+      - uuid
     PaginatedGroupList:
       type: object
       properties:
@@ -1356,6 +2235,46 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Group'
+    PaginatedLogItemsModelList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogItemsModel'
+    PaginatedLogOwnerModelList:
+      type: object
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/LogOwnerModel'
     PaginatedProductModelList:
       type: object
       properties:
@@ -1406,6 +2325,50 @@ components:
         name:
           type: string
           maxLength: 150
+    PatchedLogItemsModel:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        id:
+          type: integer
+          readOnly: true
+        date_created:
+          type: string
+          format: date-time
+          readOnly: true
+        data:
+          nullable: true
+        uuid:
+          type: string
+          format: uuid
+          nullable: true
+        owner:
+          type: string
+          format: uri
+    PatchedLogOwnerModel:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          readOnly: true
+        id:
+          type: integer
+          readOnly: true
+        date_created:
+          type: string
+          format: date-time
+          readOnly: true
+        name:
+          type: string
+          maxLength: 200
+        uuid:
+          type: string
+          format: uuid
+          readOnly: true
     PatchedProductModel:
       type: object
       properties:

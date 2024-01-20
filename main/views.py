@@ -225,6 +225,7 @@ def youtube_dl(request, action_name='info'):
             'length': yt.length,
             'publish_date': str(yt.publish_date),
             'rating': yt.rating,
+            'url': yt.watch_url,
             # 'vid_info': yt.vid_info,
             'streams': []
         }

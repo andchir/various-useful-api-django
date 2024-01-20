@@ -26,6 +26,12 @@ Generate API schema:
 python manage.py spectacular --color --file schema.yml
 ~~~
 
+API schema URLs:
+~~~
+/api/schema/swagger-ui/
+/api/schema/redoc/
+~~~
+
 Deploy:
 ~~~
 sudo nano /etc/systemd/system/price-monitoring.service
