@@ -1,4 +1,4 @@
-# Price monitoring API
+# Various useful APIs
 
 API for monitoring changes in prices for products.
 
