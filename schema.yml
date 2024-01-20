@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Price monitoring API
+  title: Various useful APIs
   version: 1.0.0
-  description: API for monitoring changes in prices for products.
+  description: Various useful APIs for api2app.ru.
 paths:
   /api/v1/create_log_record:
     post:
