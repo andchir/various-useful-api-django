@@ -2629,11 +2629,37 @@ components:
           type: string
         channel_url:
           type: string
+        title:
+          type: string
+        description:
+          type: string
+        video_id:
+          type: string
+        thumbnail_url:
+          type: string
+        length:
+          type: integer
+        publish_date:
+          type: string
+        url:
+          type: string
+        streams:
+          type: array
+          items:
+            $ref: '#/components/schemas/YoutubeDlStream'
       required:
       - author
       - channel_id
       - channel_url
+      - description
+      - length
+      - publish_date
+      - streams
       - success
+      - thumbnail_url
+      - title
+      - url
+      - video_id
     YoutubeDlResponseDownload:
       type: object
       properties:
@@ -2654,6 +2680,37 @@ components:
       required:
       - message
       - success
+    YoutubeDlStream:
+      type: object
+      properties:
+        itag:
+          type: integer
+        type:
+          type: string
+        mime_type:
+          type: string
+        bitrate:
+          type: integer
+        fps:
+          type: integer
+        resolution:
+          type: string
+        resolution_string:
+          type: string
+        video_codec:
+          type: string
+        audio_codec:
+          type: string
+      required:
+      - audio_codec
+      - bitrate
+      - fps
+      - itag
+      - mime_type
+      - resolution
+      - resolution_string
+      - type
+      - video_codec
   securitySchemes:
     basicAuth:
       type: http
