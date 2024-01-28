@@ -96,3 +96,29 @@ class LogItemsModelSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = LogItemModel
         fields = '__all__'
+
+
+class YoutubeDlRequestSerializer(serializers.Serializer):
+    url = serializers.CharField()
+
+
+class YoutubeDlResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    author = serializers.CharField()
+    channel_id = serializers.CharField()
+    channel_url = serializers.CharField()
+
+
+class YoutubeDlRequestDownloadSerializer(serializers.Serializer):
+    url = serializers.CharField()
+    itag = serializers.IntegerField()
+
+
+class YoutubeDlResponseDownloadSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    download_url = serializers.CharField()
+
+
+class YoutubeDlResponseErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()

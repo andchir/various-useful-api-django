@@ -46,8 +46,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
     path('api/v1/', include(router.urls)),
-    path('api/v1/youtube_dl', views.youtube_dl, name='youtube_dl'),
-    path('api/v1/youtube_dl/<str:action_name>', views.youtube_dl, name='youtube_dl_action'),
+    path('api/v1/youtube_dl', views.youtube_dl_info, name='youtube_dl'),
+    path('api/v1/youtube_dl/download', views.youtube_dl_download, name='youtube_dl_action'),
     path('api/v1/create_log_record', views.create_log_record, name='create_log_record'),
     path('api/v1/create_log_record/<str:owner_uuid>', views.create_log_record, name='create_log_record_by_uuid'),
 ]

@@ -2100,33 +2100,73 @@ paths:
   /api/v1/youtube_dl:
     post:
       operationId: v1_youtube_dl_create
+      description: API endpoint for information about the video from YouTube.
       tags:
       - v1
-      security:
-      - cookieAuth: []
-      - basicAuth: []
-      - {}
-      responses:
-        '200':
-          description: No response body
-  /api/v1/youtube_dl/{action_name}:
-    post:
-      operationId: v1_youtube_dl_create_2
-      parameters:
-      - in: path
-        name: action_name
-        schema:
-          type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/YoutubeDlRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/YoutubeDlRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/YoutubeDlRequest'
         required: true
-      tags:
-      - v1
       security:
       - cookieAuth: []
       - basicAuth: []
       - {}
       responses:
         '200':
-          description: No response body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YoutubeDlResponse'
+          description: ''
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YoutubeDlResponseError'
+          description: ''
+  /api/v1/youtube_dl/download:
+    post:
+      operationId: v1_youtube_dl_download_create
+      description: API endpoint for downloading videos from YouTube.
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/YoutubeDlRequestDownload'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/YoutubeDlRequestDownload'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/YoutubeDlRequestDownload'
+        required: true
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YoutubeDlResponseDownload'
+          description: ''
+        '422':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/YoutubeDlResponseError'
+          description: ''
 components:
   schemas:
     Group:
@@ -2561,6 +2601,59 @@ components:
       - password
       - url
       - username
+    YoutubeDlRequest:
+      type: object
+      properties:
+        url:
+          type: string
+      required:
+      - url
+    YoutubeDlRequestDownload:
+      type: object
+      properties:
+        url:
+          type: string
+        itag:
+          type: integer
+      required:
+      - itag
+      - url
+    YoutubeDlResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        author:
+          type: string
+        channel_id:
+          type: string
+        channel_url:
+          type: string
+      required:
+      - author
+      - channel_id
+      - channel_url
+      - success
+    YoutubeDlResponseDownload:
+      type: object
+      properties:
+        success:
+          type: boolean
+        download_url:
+          type: string
+      required:
+      - download_url
+      - success
+    YoutubeDlResponseError:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+      required:
+      - message
+      - success
   securitySchemes:
     basicAuth:
       type: http
