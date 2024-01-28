@@ -102,11 +102,31 @@ class YoutubeDlRequestSerializer(serializers.Serializer):
     url = serializers.CharField()
 
 
+class YoutubeDlStreamSerializer(serializers.Serializer):
+    itag = serializers.IntegerField()
+    type = serializers.CharField()
+    mime_type = serializers.CharField()
+    bitrate = serializers.IntegerField()
+    fps = serializers.IntegerField()
+    resolution = serializers.CharField()
+    resolution_string = serializers.CharField()
+    video_codec = serializers.CharField()
+    audio_codec = serializers.CharField()
+
+
 class YoutubeDlResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     author = serializers.CharField()
     channel_id = serializers.CharField()
     channel_url = serializers.CharField()
+    title = serializers.CharField()
+    description = serializers.CharField()
+    video_id = serializers.CharField()
+    thumbnail_url = serializers.CharField()
+    length = serializers.IntegerField()
+    publish_date = serializers.CharField()
+    url = serializers.CharField()
+    streams = YoutubeDlStreamSerializer(many=True)
 
 
 class YoutubeDlRequestDownloadSerializer(serializers.Serializer):

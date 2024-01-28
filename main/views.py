@@ -217,8 +217,8 @@ def youtube_dl_info(request):
     try:
         yt = YouTube(url, use_oauth=False, allow_oauth_cache=True)
     except Exception as e:
-        return HttpResponse(json.dumps({'success': False, 'message': str(e)}), content_type='application/json',
-                            status=200)
+        return HttpResponse(json.dumps({'success': False, 'message': str(e)}),
+                            content_type='application/json', status=500)
 
     output = {
         'success': True,
@@ -278,8 +278,8 @@ def youtube_dl_download(request):
     try:
         yt = YouTube(url, use_oauth=False, allow_oauth_cache=True)
     except Exception as e:
-        return HttpResponse(json.dumps({'success': False, 'message': str(e)}), content_type='application/json',
-                            status=200)
+        return HttpResponse(json.dumps({'success': False, 'message': str(e)}),
+                            content_type='application/json', status=200)
 
     stream = yt.streams.get_by_itag(int(itag))
     output = {
