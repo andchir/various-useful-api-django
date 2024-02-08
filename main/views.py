@@ -14,14 +14,13 @@ from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
+from main.lib import edge_tts_find_voice
 from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
     YoutubeDlResponseSerializer, YoutubeDlRequestDownloadSerializer, YoutubeDlResponseErrorSerializer
 from main.permissions import IsOwnerOnly
 from pytube import YouTube
-import edge_tts
-from edge_tts import VoicesManager
 
 
 # Create your views here.
@@ -293,23 +292,13 @@ def youtube_dl_download(request):
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
 
-async def edge_tts_find_voice(language=None, gender=None) -> None:
-    voices = await VoicesManager.create()
-    if language is None and gender is None:
-        return voices.voices
-    if gender is None:
-        result = voices.find(Language=language)
-    else:
-        result = voices.find(Gender=gender.capitalize(), Language=language)
-    return result
-
-
 @api_view(['GET'])
 def edge_tts_voices_list(request):
-
     loop = asyncio.new_event_loop()
-    res = loop.run_until_complete(edge_tts_find_voice())
-    loop.close()
+    try:
+        res = loop.run_until_complete(edge_tts_find_voice())
+    finally:
+        loop.close()
 
     output = {
         'success': True,
@@ -320,16 +309,32 @@ def edge_tts_voices_list(request):
 
 
 @api_view(['GET'])
-def edge_tts_voices_list_by_lang(request, language, gender=None):
+def edge_tts_voices_list_by_lang(request, language):
     gender = request.GET['gender'] if 'gender' in request.GET else None
-
     loop = asyncio.new_event_loop()
-    res = loop.run_until_complete(edge_tts_find_voice(language, gender))
-    loop.close()
+    try:
+        res = loop.run_until_complete(edge_tts_find_voice(language, gender))
+    finally:
+        loop.close()
 
     output = {
         'success': True,
         'voices': res
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@api_view(['POST'])
+def edge_tts(request, voice_id):
+    text = request.data['text'] if 'text' in request.data else None
+
+    if text is None:
+        return HttpResponse(json.dumps({'success': False, 'message': 'The text cannot be empty.'}),
+                            content_type='application/json', status=422)
+
+    output = {
+        'success': True
     }
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)

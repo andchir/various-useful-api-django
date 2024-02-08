@@ -51,6 +51,7 @@ urlpatterns = [
     path('api/v1/youtube_dl/download', views.youtube_dl_download, name='youtube_dl_action'),
     path('api/v1/create_log_record', views.create_log_record, name='create_log_record'),
     path('api/v1/create_log_record/<str:owner_uuid>', views.create_log_record, name='create_log_record_by_uuid'),
+    path('api/v1/edge_tts/<str:voice_id>', views.edge_tts, name='edge_tts'),
     path('api/v1/edge_tts_voices_list', cache_page(60 * 120)(views.edge_tts_voices_list),
          name='edge_tts_voices_list'),
     path('api/v1/edge_tts_voices_list_by_lang/<str:language>', cache_page(60 * 120)(views.edge_tts_voices_list_by_lang),
