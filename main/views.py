@@ -1,3 +1,4 @@
+import asyncio
 import json
 from django.http import HttpResponse
 from django.contrib.auth.models import User, Group
@@ -19,6 +20,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     YoutubeDlResponseSerializer, YoutubeDlRequestDownloadSerializer, YoutubeDlResponseErrorSerializer
 from main.permissions import IsOwnerOnly
 from pytube import YouTube
+import edge_tts
+from edge_tts import VoicesManager
 
 
 # Create your views here.
@@ -285,6 +288,48 @@ def youtube_dl_download(request):
     output = {
         'success': True,
         'download_url': stream.url
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+async def edge_tts_find_voice(language=None, gender=None) -> None:
+    voices = await VoicesManager.create()
+    if language is None and gender is None:
+        return voices.voices
+    if gender is None:
+        result = voices.find(Language=language)
+    else:
+        result = voices.find(Gender=gender.capitalize(), Language=language)
+    return result
+
+
+@api_view(['GET'])
+def edge_tts_voices_list(request):
+
+    loop = asyncio.new_event_loop()
+    res = loop.run_until_complete(edge_tts_find_voice())
+    loop.close()
+
+    output = {
+        'success': True,
+        'voices': res
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@api_view(['GET'])
+def edge_tts_voices_list_by_lang(request, language, gender=None):
+    gender = request.GET['gender'] if 'gender' in request.GET else None
+
+    loop = asyncio.new_event_loop()
+    res = loop.run_until_complete(edge_tts_find_voice(language, gender))
+    loop.close()
+
+    output = {
+        'success': True,
+        'voices': res
     }
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)

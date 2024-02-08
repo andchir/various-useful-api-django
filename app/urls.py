@@ -21,6 +21,7 @@ from rest_framework import routers, permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from drf_spectacular.views import SpectacularAPIView, SpectacularRedocView, SpectacularSwaggerView
+from django.views.decorators.cache import cache_page
 
 from app import settings
 from main import views
@@ -50,6 +51,10 @@ urlpatterns = [
     path('api/v1/youtube_dl/download', views.youtube_dl_download, name='youtube_dl_action'),
     path('api/v1/create_log_record', views.create_log_record, name='create_log_record'),
     path('api/v1/create_log_record/<str:owner_uuid>', views.create_log_record, name='create_log_record_by_uuid'),
+    path('api/v1/edge_tts_voices_list', cache_page(60 * 120)(views.edge_tts_voices_list),
+         name='edge_tts_voices_list'),
+    path('api/v1/edge_tts_voices_list_by_lang/<str:language>', cache_page(60 * 120)(views.edge_tts_voices_list_by_lang),
+         name='edge_tts_voices_list_by_lang'),
 ]
 
 urlpatterns += [
