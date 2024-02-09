@@ -22,3 +22,4 @@ youtube-dl==2021.12.17
 pytube==15.0.0
 edge-tts==6.1.9
 uuid==1.30
+Babel==2.14.0

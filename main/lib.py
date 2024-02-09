@@ -3,9 +3,10 @@ import base64
 import edge_tts
 from datetime import datetime
 from edge_tts import VoicesManager
+from babel import Locale
 
 
-async def edge_tts_find_voice(language=None, gender=None) -> None:
+async def edge_tts_find_voice(language=None, gender=None):
     voices = await VoicesManager.create()
     if language is None and gender is None:
         return voices.voices
@@ -16,9 +17,42 @@ async def edge_tts_find_voice(language=None, gender=None) -> None:
     return result
 
 
-async def edge_tts_create_audio(text, voice_id, output_file_path) -> None:
+async def edge_tts_create_audio(text, voice_id, output_file_path):
     communicate = edge_tts.Communicate(text, voice_id)
     await communicate.save(output_file_path)
+
+
+def lists_to_dict(list_keys, list_values):
+    res = {}
+    for index, val in enumerate(list_keys):
+        res[list_keys[index]] = list_values[index]
+    return res
+
+
+def create_lang_list(list_keys, list_values):
+    res = []
+    for index, val in enumerate(list_keys):
+        code = list_keys[index].split('-')[0]
+        res.append({'name': list_values[index], 'locale': list_keys[index], 'code': code})
+    return res
+
+
+async def edge_tts_locales():
+    lang_locales = []
+    lang_names = []
+    voices = await VoicesManager.create()
+    for voice in voices.voices:
+        if voice['Locale'] in lang_locales:
+            continue
+        lang_locales.append(voice['Locale'])
+        tmp = voice['Locale'].split('-')
+        try:
+            locale = Locale(tmp[0], tmp[1])
+            lang_name = locale.display_name
+        except Exception as e:
+            lang_name = voice['Locale']
+        lang_names.append(lang_name)
+    return create_lang_list(lang_locales, lang_names)
 
 
 def audio_to_base64(file_path):
@@ -42,3 +76,5 @@ def delete_old_files(dir_path, max_hours=2):
             os.remove(os.path.join(dir_path, file))
             deleted += 1
     return deleted
+
+

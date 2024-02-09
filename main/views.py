@@ -18,7 +18,7 @@ from rest_framework.pagination import PageNumberPagination
 
 from app import settings
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
-from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files
+from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files, edge_tts_locales
 from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
@@ -324,6 +324,22 @@ def edge_tts_voices_list_by_lang(request, language):
     output = {
         'success': True,
         'voices': res
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@api_view(['GET'])
+def edge_tts_languages_list(request):
+    loop = asyncio.new_event_loop()
+    try:
+        res = loop.run_until_complete(edge_tts_locales())
+    finally:
+        loop.close()
+
+    output = {
+        'success': True,
+        'languages': res
     }
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
