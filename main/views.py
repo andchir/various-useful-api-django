@@ -22,7 +22,8 @@ from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_file
 from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
-    YoutubeDlResponseSerializer, YoutubeDlRequestDownloadSerializer, YoutubeDlResponseErrorSerializer
+    YoutubeDlResponseSerializer, YoutubeDlRequestDownloadSerializer, YoutubeDlResponseErrorSerializer, \
+    EdgeTtsVoicesSerializer, EdgeTtsLanguagesSerializer, EdgeTtsVoicesRequestSerializer
 from main.permissions import IsOwnerOnly
 from pytube import YouTube
 
@@ -296,6 +297,11 @@ def youtube_dl_download(request):
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
 
+@extend_schema(
+    responses={
+        (200, 'application/json'): EdgeTtsVoicesSerializer
+    }
+)
 @api_view(['GET'])
 def edge_tts_voices_list(request):
     loop = asyncio.new_event_loop()
@@ -312,6 +318,12 @@ def edge_tts_voices_list(request):
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
 
+@extend_schema(
+    parameters=[EdgeTtsVoicesRequestSerializer],
+    responses={
+        (200, 'application/json'): EdgeTtsVoicesSerializer
+    }
+)
 @api_view(['GET'])
 def edge_tts_voices_list_by_lang(request, language):
     gender = request.GET['gender'] if 'gender' in request.GET else None
@@ -329,6 +341,11 @@ def edge_tts_voices_list_by_lang(request, language):
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
 
+@extend_schema(
+    responses={
+        (200, 'application/json'): EdgeTtsLanguagesSerializer
+    }
+)
 @api_view(['GET'])
 def edge_tts_languages_list(request):
     loop = asyncio.new_event_loop()
@@ -345,6 +362,11 @@ def edge_tts_languages_list(request):
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
 
+@extend_schema(
+    responses={
+        (200, 'application/json'): bytes
+    }
+)
 @api_view(['POST'])
 def edge_tts(request, voice_id):
     text = request.data['text'] if 'text' in request.data else None

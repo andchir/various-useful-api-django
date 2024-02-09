@@ -34,6 +34,89 @@ paths:
       responses:
         '200':
           description: No response body
+  /api/v1/edge_tts/{voice_id}:
+    post:
+      operationId: v1_edge_tts_create
+      parameters:
+      - in: path
+        name: voice_id
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+  /api/v1/edge_tts_languages_list:
+    get:
+      operationId: v1_edge_tts_languages_list_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EdgeTtsLanguages'
+          description: ''
+  /api/v1/edge_tts_voices_list:
+    get:
+      operationId: v1_edge_tts_voices_list_retrieve
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EdgeTtsVoices'
+          description: ''
+  /api/v1/edge_tts_voices_list_by_lang/{language}:
+    get:
+      operationId: v1_edge_tts_voices_list_by_lang_retrieve
+      parameters:
+      - in: query
+        name: gender
+        schema:
+          type: string
+          minLength: 1
+        required: true
+      - in: path
+        name: language
+        schema:
+          type: string
+        required: true
+      tags:
+      - v1
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EdgeTtsVoices'
+          description: ''
   /api/v1/groups:
     get:
       operationId: v1_groups_list
@@ -2169,6 +2252,71 @@ paths:
           description: ''
 components:
   schemas:
+    EdgeTtsLanguage:
+      type: object
+      properties:
+        name:
+          type: string
+        locale:
+          type: string
+        code:
+          type: string
+      required:
+      - code
+      - locale
+      - name
+    EdgeTtsLanguages:
+      type: object
+      properties:
+        success:
+          type: boolean
+        languages:
+          type: array
+          items:
+            $ref: '#/components/schemas/EdgeTtsLanguage'
+      required:
+      - languages
+      - success
+    EdgeTtsVoice:
+      type: object
+      properties:
+        Name:
+          type: string
+        ShortName:
+          type: string
+        Gender:
+          type: string
+        Locale:
+          type: string
+        SuggestedCodec:
+          type: string
+        FriendlyName:
+          type: string
+        Status:
+          type: string
+        Language:
+          type: string
+      required:
+      - FriendlyName
+      - Gender
+      - Language
+      - Locale
+      - Name
+      - ShortName
+      - Status
+      - SuggestedCodec
+    EdgeTtsVoices:
+      type: object
+      properties:
+        success:
+          type: boolean
+        voices:
+          type: array
+          items:
+            $ref: '#/components/schemas/EdgeTtsVoice'
+      required:
+      - success
+      - voices
     Group:
       type: object
       properties:

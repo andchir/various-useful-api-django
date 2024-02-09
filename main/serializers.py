@@ -142,3 +142,34 @@ class YoutubeDlResponseDownloadSerializer(serializers.Serializer):
 class YoutubeDlResponseErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+
+class EdgeTtsVoiceSerializer(serializers.Serializer):
+    Name = serializers.CharField()
+    ShortName = serializers.CharField()
+    Gender = serializers.CharField()
+    Locale = serializers.CharField()
+    SuggestedCodec = serializers.CharField()
+    FriendlyName = serializers.CharField()
+    Status = serializers.CharField()
+    Language = serializers.CharField()
+
+
+class EdgeTtsLanguageSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    locale = serializers.CharField()
+    code = serializers.CharField()
+
+
+class EdgeTtsVoicesSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    voices = EdgeTtsVoiceSerializer(many=True)
+
+
+class EdgeTtsLanguagesSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    languages = EdgeTtsLanguageSerializer(many=True)
+
+
+class EdgeTtsVoicesRequestSerializer(serializers.Serializer):
+    gender = serializers.CharField()
