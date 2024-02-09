@@ -364,7 +364,7 @@ def edge_tts_languages_list(request):
 
 @extend_schema(
     responses={
-        (200, 'application/json'): bytes
+        (200, 'audio/mpeg'): bytes
     }
 )
 @api_view(['POST'])

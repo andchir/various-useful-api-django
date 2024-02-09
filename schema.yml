@@ -52,7 +52,7 @@ paths:
       responses:
         '200':
           content:
-            application/json:
+            audio/mpeg:
               schema:
                 type: string
                 format: binary
