@@ -1,5 +1,8 @@
 import asyncio
 import json
+import os
+import uuid
+
 from django.http import HttpResponse
 from django.contrib.auth.models import User, Group
 from django.utils.decorators import method_decorator
@@ -13,8 +16,9 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes
 from rest_framework.pagination import PageNumberPagination
 
+from app import settings
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
-from main.lib import edge_tts_find_voice
+from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files
 from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
@@ -333,8 +337,22 @@ def edge_tts(request, voice_id):
         return HttpResponse(json.dumps({'success': False, 'message': 'The text cannot be empty.'}),
                             content_type='application/json', status=422)
 
-    output = {
-        'success': True
-    }
+    item_uuid = uuid.uuid1()
+    if not os.path.isdir(os.path.join(settings.MEDIA_ROOT, 'audio')):
+        os.mkdir(os.path.join(settings.MEDIA_ROOT, 'audio'))
+    audio_file_path = os.path.join(settings.MEDIA_ROOT, 'audio', str(item_uuid) + '.mp3')
+    delete_old_files(os.path.join(settings.MEDIA_ROOT, 'audio'))
 
-    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(edge_tts_create_audio(text, voice_id, audio_file_path))
+    finally:
+        loop.close()
+
+    f = open(audio_file_path, 'rb')
+    response = HttpResponse()
+    response.write(f.read())
+    response['Content-Type'] = 'audio/mpeg'
+    response['Content-Length'] = os.path.getsize(audio_file_path)
+
+    return response
