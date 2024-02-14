@@ -174,27 +174,42 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost",
     "http://localhost:4200",
     "http://127.0.0.1:4200",
-    "http://localhost:8001",
-    "http://127.0.0.1:8001"
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://api2app.loc",
+    "http://api2app.ru",
+    "https://api2app.ru",
+    "http://api2app.online",
+    "https://api2app.online"
 ]
 
 CORS_ORIGIN_WHITELIST = [
     "http://localhost",
     "http://localhost:4200",
     "http://127.0.0.1:4200",
-    "http://localhost:8001",
-    "http://127.0.0.1:8001"
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+    "http://api2app.loc",
+    "http://api2app.ru",
+    "https://api2app.ru",
+    "http://api2app.online",
+    "https://api2app.online"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost",
     "http://localhost:4200",
     "http://127.0.0.1:4200",
-    "http://localhost:8001",
+    "http://localhost:8000",
+    "http://api2app.loc",
+    "http://api2app.ru",
+    "https://api2app.ru",
+    "http://api2app.online",
+    "https://api2app.online"
 ]
 
-CORS_ALLOW_ALL_ORIGINS = True
-CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_ALL_ORIGINS = os.environ.get('APP_ENV') == 'dev'
+CORS_ALLOW_CREDENTIALS = os.environ.get('APP_ENV') == 'dev'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
