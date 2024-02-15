@@ -23,3 +23,4 @@ pytube==15.0.0
 edge-tts==6.1.9
 uuid==1.30
 Babel==2.14.0
+django-cors-headers==4.3.1
