@@ -8,6 +8,7 @@ Various useful APIs for api2app.ru.
 - API for monitoring changes in prices for products.
 - Logging - testing webhooks.
 - Downloading videos from YouTube.
+- Microsoft Text-to-Speech (edge-tts)
 
 Create superuser:
 ~~~
