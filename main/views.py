@@ -409,7 +409,7 @@ def password_generate(request):
     minlen = int(request.data['minlen']) if 'minlen' in request.data else 8
     maxlen = int(request.data['maxlen']) if 'maxlen' in request.data else 0
     minschars = int(request.data['minschars']) if 'minschars' in request.data else 1
-    use_schars = bool(request.data['use_schars']) if 'use_schars' in request.data else False
+    use_schars = bool(request.data['use_schars']) if 'use_schars' in request.data else True
 
     if not maxlen:
         maxlen = minlen
