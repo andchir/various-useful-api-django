@@ -10,6 +10,7 @@ from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import extend_schema, OpenApiParameter
+from password_generator import PasswordGenerator
 from rest_framework import status, viewsets, filters, generics
 from rest_framework import permissions
 from rest_framework.response import Response
@@ -394,3 +395,27 @@ def edge_tts(request, voice_id):
     response['Content-Length'] = os.path.getsize(audio_file_path)
 
     return response
+
+
+@api_view(['POST'])
+def password_generate(request):
+    minlen = int(request.data['minlen']) if 'minlen' in request.data else 8
+    maxlen = int(request.data['maxlen']) if 'maxlen' in request.data else 0
+    minschars = int(request.data['minschars']) if 'minschars' in request.data else 1
+
+    if not maxlen:
+        maxlen = minlen
+
+    pwo = PasswordGenerator()
+    pwo.minlen = minlen
+    pwo.maxlen = maxlen
+    pwo.minschars = minschars
+
+    password = pwo.generate()
+
+    output = {
+        'success': True,
+        'password': password
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)

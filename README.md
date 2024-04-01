@@ -9,6 +9,7 @@ Various useful APIs for api2app.ru.
 - Logging - testing webhooks.
 - Downloading videos from YouTube (pytube).
 - Microsoft Text-to-Speech (edge-tts)
+- Password generator
 
 Create superuser:
 ~~~
