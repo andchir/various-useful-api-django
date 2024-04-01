@@ -173,3 +173,14 @@ class EdgeTtsLanguagesSerializer(serializers.Serializer):
 
 class EdgeTtsVoicesRequestSerializer(serializers.Serializer):
     gender = serializers.CharField()
+
+
+class PasswordGeneratorRequestSerializer(serializers.Serializer):
+    minlen = serializers.IntegerField(default=8)
+    maxlen = serializers.IntegerField(default=0)
+    minschars = serializers.IntegerField(default=1)
+
+
+class PasswordGeneratorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    password = serializers.CharField()

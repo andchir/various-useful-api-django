@@ -24,7 +24,8 @@ from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
     YoutubeDlResponseSerializer, YoutubeDlRequestDownloadSerializer, YoutubeDlResponseErrorSerializer, \
-    EdgeTtsVoicesSerializer, EdgeTtsLanguagesSerializer, EdgeTtsVoicesRequestSerializer
+    EdgeTtsVoicesSerializer, EdgeTtsLanguagesSerializer, EdgeTtsVoicesRequestSerializer, PasswordGeneratorSerializer, \
+    PasswordGeneratorRequestSerializer
 from main.permissions import IsOwnerOnly
 from pytube import YouTube
 
@@ -397,6 +398,12 @@ def edge_tts(request, voice_id):
     return response
 
 
+@extend_schema(
+    request=PasswordGeneratorRequestSerializer,
+    responses={
+        (200, 'application/json'): PasswordGeneratorSerializer
+    }
+)
 @api_view(['POST'])
 def password_generate(request):
     minlen = int(request.data['minlen']) if 'minlen' in request.data else 8

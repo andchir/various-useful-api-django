@@ -1234,6 +1234,33 @@ paths:
       responses:
         '204':
           description: No response body
+  /api/v1/password_generate:
+    post:
+      operationId: v1_password_generate_create
+      tags:
+      - v1
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordGeneratorRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PasswordGeneratorRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PasswordGeneratorRequest'
+      security:
+      - cookieAuth: []
+      - basicAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PasswordGenerator'
+          description: ''
   /api/v1/products:
     get:
       operationId: v1_products_list
@@ -2503,6 +2530,28 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/User'
+    PasswordGenerator:
+      type: object
+      properties:
+        success:
+          type: boolean
+        password:
+          type: string
+      required:
+      - password
+      - success
+    PasswordGeneratorRequest:
+      type: object
+      properties:
+        minlen:
+          type: integer
+          default: 8
+        maxlen:
+          type: integer
+          default: 0
+        minschars:
+          type: integer
+          default: 1
     PatchedGroup:
       type: object
       properties:
