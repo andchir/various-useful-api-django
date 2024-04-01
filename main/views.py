@@ -409,6 +409,7 @@ def password_generate(request):
     minlen = int(request.data['minlen']) if 'minlen' in request.data else 8
     maxlen = int(request.data['maxlen']) if 'maxlen' in request.data else 0
     minschars = int(request.data['minschars']) if 'minschars' in request.data else 1
+    use_schars = bool(request.data['use_schars']) if 'use_schars' in request.data else False
 
     if not maxlen:
         maxlen = minlen
@@ -417,8 +418,15 @@ def password_generate(request):
     pwo.minlen = minlen
     pwo.maxlen = maxlen
     pwo.minschars = minschars
+    if not use_schars:
+        pwo.minschars = 0
+        pwo.excludeschars = '!#$%^&*(),.-_+=<>?'
 
-    password = pwo.generate()
+    try:
+        password = pwo.generate()
+    except ValueError as e:
+        return HttpResponse(json.dumps({'success': False, 'message': str(e)}),
+                            content_type='application/json', status=422)
 
     output = {
         'success': True,

@@ -2552,6 +2552,9 @@ components:
         minschars:
           type: integer
           default: 1
+        use_schars:
+          type: boolean
+          default: true
     PatchedGroup:
       type: object
       properties:

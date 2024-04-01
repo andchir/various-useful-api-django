@@ -179,6 +179,7 @@ class PasswordGeneratorRequestSerializer(serializers.Serializer):
     minlen = serializers.IntegerField(default=8)
     maxlen = serializers.IntegerField(default=0)
     minschars = serializers.IntegerField(default=1)
+    use_schars = serializers.BooleanField(default=True)
 
 
 class PasswordGeneratorSerializer(serializers.Serializer):
