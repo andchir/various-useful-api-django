@@ -36,6 +36,9 @@ def index(request, exception=None):
     return HttpResponse('Welcome.')
 
 
+@extend_schema(
+    tags=['Users'],
+)
 class UserViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows users to be viewed or edited.
@@ -54,6 +57,9 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+@extend_schema(
+    tags=['Users groups'],
+)
 class GroupViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows groups to be viewed or edited.
@@ -68,6 +74,9 @@ class ItemsListPagination(PageNumberPagination):
     page_size_query_param = 'page_size'
 
 
+@extend_schema(
+    tags=['Price monitoring'],
+)
 class ProductsViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows products to be viewed or edited.
@@ -122,6 +131,9 @@ class ProductsViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+@extend_schema(
+    tags=['Logging'],
+)
 class LogOwnerViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows log owners to be viewed or edited.
@@ -135,6 +147,9 @@ class LogOwnerViewSet(viewsets.ModelViewSet):
     ordering = ['-id']
 
 
+@extend_schema(
+    tags=['Logging'],
+)
 class LogItemsViewSet(viewsets.ModelViewSet):
     """
     API endpoint that allows log to be viewed or edited.
@@ -165,6 +180,9 @@ class LogItemsViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
+@extend_schema(
+    tags=['Logging'],
+)
 @api_view(['POST'])
 def create_log_record(request, owner_uuid=None):
     if owner_uuid is None and 'uuid' in request.GET:
@@ -206,6 +224,7 @@ def create_log_record(request, owner_uuid=None):
 
 
 @extend_schema(
+    tags=['YouTube'],
     request=YoutubeDlRequestSerializer,
     responses={
         (200, 'application/json'): YoutubeDlResponseSerializer,
@@ -267,6 +286,7 @@ def youtube_dl_info(request):
 
 
 @extend_schema(
+    tags=['YouTube'],
     request=YoutubeDlRequestDownloadSerializer,
     responses={
         (200, 'application/json'): YoutubeDlResponseDownloadSerializer,
@@ -300,6 +320,7 @@ def youtube_dl_download(request):
 
 
 @extend_schema(
+    tags=['EdgeTTS'],
     responses={
         (200, 'application/json'): EdgeTtsVoicesSerializer
     }
@@ -321,6 +342,7 @@ def edge_tts_voices_list(request):
 
 
 @extend_schema(
+    tags=['EdgeTTS'],
     parameters=[EdgeTtsVoicesRequestSerializer],
     responses={
         (200, 'application/json'): EdgeTtsVoicesSerializer
@@ -344,6 +366,7 @@ def edge_tts_voices_list_by_lang(request, language):
 
 
 @extend_schema(
+    tags=['EdgeTTS'],
     responses={
         (200, 'application/json'): EdgeTtsLanguagesSerializer
     }
@@ -365,6 +388,7 @@ def edge_tts_languages_list(request):
 
 
 @extend_schema(
+    tags=['EdgeTTS'],
     responses={
         (200, 'audio/mpeg'): bytes
     }
@@ -399,6 +423,7 @@ def edge_tts(request, voice_id):
 
 
 @extend_schema(
+    tags=['Password generator'],
     request=PasswordGeneratorRequestSerializer,
     responses={
         (200, 'application/json'): PasswordGeneratorSerializer
