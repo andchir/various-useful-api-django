@@ -27,7 +27,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     EdgeTtsVoicesSerializer, EdgeTtsLanguagesSerializer, EdgeTtsVoicesRequestSerializer, PasswordGeneratorSerializer, \
     PasswordGeneratorRequestSerializer
 from main.permissions import IsOwnerOnly
-from pytube import YouTube
+# from pytube import YouTube
+from pytubefix import YouTube
 
 
 # Create your views here.
@@ -265,7 +266,9 @@ def youtube_dl_info(request):
         'streams': []
     }
 
-    for stream in yt.streams:
+    streams = yt.streams.filter(type='video').order_by('resolution').desc()
+
+    for stream in streams:
         output['streams'].append({
             'itag': stream.itag,
             'type': stream.type,
