@@ -3,6 +3,7 @@ import json
 import os
 import uuid
 
+import yt_dlp
 from django.http import HttpResponse
 from django.contrib.auth.models import User, Group
 from django.utils.decorators import method_decorator
@@ -223,6 +224,64 @@ def create_log_record(request, owner_uuid=None):
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
+
+@extend_schema(
+    tags=['YouTube'],
+    request=YoutubeDlRequestSerializer,
+    responses={
+        (200, 'application/json'): YoutubeDlResponseSerializer,
+        (422, 'application/json'): YoutubeDlResponseErrorSerializer
+    }
+)
+@api_view(['POST'])
+def yt_dlp_info(request):
+    """
+        API endpoint for information about the video from YouTube.
+        """
+    url = request.data['url'] if 'url' in request.data else None
+
+    if url is None:
+        return HttpResponse(json.dumps({'success': False, 'message': 'There are no required fields.'}),
+                            content_type='application/json', status=422)
+
+    def format_selector(ctx):
+        """ Select the best video and the best audio that won't result in an mkv.
+        NOTE: This is just an example and does not handle all cases """
+
+        # formats are already sorted worst to best
+        formats = ctx.get('formats')[::-1]
+
+        # acodec='none' means there is no audio
+        best_video = next(f for f in formats
+                          if f['vcodec'] != 'none' and f['acodec'] == 'none')
+
+        # find compatible audio extension
+        audio_ext = {'mp4': 'm4a', 'webm': 'webm'}[best_video['ext']]
+        # vcodec='none' means there is no video
+        best_audio = next(f for f in formats if (
+                f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
+
+        # These are the minimum required fields for a merged format
+        yield {
+            'format_id': f'{best_video["format_id"]}+{best_audio["format_id"]}',
+            'ext': best_video['ext'],
+            'requested_formats': [best_video, best_audio],
+            # Must be + separated list of protocols
+            'protocol': f'{best_video["protocol"]}+{best_audio["protocol"]}'
+        }
+
+    ydl_opts = {
+        'format': format_selector
+    }
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=False)
+        data = ydl.sanitize_info(info)
+
+        print(data)
+
+    output = {'success': True}
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
 @extend_schema(
     tags=['YouTube'],
