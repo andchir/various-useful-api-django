@@ -538,7 +538,7 @@ def fact_check_explorer(request):
 
     query = request.data['query'] if 'query' in request.data else ''
     language = request.data['language'] if 'language' in request.data and request.data['language'] else None
-    num_results = request.data['num_results'] if 'num_results' in request.data and request.data['num_results'] else 200
+    num_results = int(request.data['num_results']) if 'num_results' in request.data and int(request.data['num_results']) else 200
 
     num_results = min(num_results, 500)
 
