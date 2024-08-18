@@ -10,13 +10,13 @@ from django.contrib.auth.models import User, Group
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django_filters.rest_framework import DjangoFilterBackend
-from drf_spectacular.types import OpenApiTypes
+from rest_framework.authentication import BasicAuthentication
 from drf_spectacular.utils import extend_schema, OpenApiParameter
 from password_generator import PasswordGenerator
 from rest_framework import status, viewsets, filters, generics
 from rest_framework import permissions
 from rest_framework.response import Response
-from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.decorators import action, api_view, permission_classes, authentication_classes
 from rest_framework.pagination import PageNumberPagination
 
 from app import settings
@@ -532,6 +532,8 @@ def password_generate(request):
     }
 )
 @api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def fact_check_explorer(request):
 
     query = request.data['query'] if 'query' in request.data else ''
