@@ -10,6 +10,7 @@ Various useful APIs for api2app.ru.
 - Downloading videos from YouTube (pytube).
 - Microsoft Text-to-Speech (edge-tts)
 - Password generator
+- FactCheckExplorer (https://github.com/GONZOsint/factcheckexplorer)
 
 Create superuser:
 ~~~
