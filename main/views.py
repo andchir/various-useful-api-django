@@ -3,6 +3,7 @@ import json
 import os
 import uuid
 
+from factcheckexplorer.factcheckexplorer import FactCheckLib
 import yt_dlp
 from django.http import HttpResponse
 from django.contrib.auth.models import User, Group
@@ -26,7 +27,7 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
     YoutubeDlResponseSerializer, YoutubeDlRequestDownloadSerializer, YoutubeDlResponseErrorSerializer, \
     EdgeTtsVoicesSerializer, EdgeTtsLanguagesSerializer, EdgeTtsVoicesRequestSerializer, PasswordGeneratorSerializer, \
-    PasswordGeneratorRequestSerializer
+    PasswordGeneratorRequestSerializer, FactCheckExplorerRequestSerializer, FactCheckExplorerSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -518,6 +519,52 @@ def password_generate(request):
     output = {
         'success': True,
         'password': password
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['FactCheckExplorer'],
+    request=FactCheckExplorerRequestSerializer,
+    responses={
+        (200, 'application/json'): FactCheckExplorerSerializer
+    }
+)
+@api_view(['POST'])
+def fact_check_explorer(request):
+
+    query = request.data['query'] if 'query' in request.data else ''
+    language = request.data['language'] if 'language' in request.data and request.data['language'] else None
+    num_results = request.data['num_results'] if 'num_results' in request.data and request.data['num_results'] else 200
+
+    num_results = min(num_results, 500)
+
+    if not query:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'The request is empty.'}), content_type='application/json', status=420)
+
+    data = []
+
+    fact_check = FactCheckLib(query=query, language=language, num_results=num_results)
+    raw_json = fact_check.fetch_data()
+    if raw_json:
+        try:
+            cleaned_json = fact_check.clean_json(raw_json)
+        except:
+            cleaned_json = None
+        if cleaned_json:
+            try:
+                extracted_info = fact_check.extract_info(cleaned_json)
+            except Exception as e:
+                print(str(e))
+                extracted_info = None
+            if extracted_info:
+                data = extracted_info
+                # fact_check.convert_to_csv(extracted_info)
+
+    output = {
+        'success': True,
+        'data': data
     }
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)

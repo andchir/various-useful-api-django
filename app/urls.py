@@ -60,6 +60,7 @@ urlpatterns = [
          name='edge_tts_voices_list'),
     path('api/v1/edge_tts_voices_list_by_lang/<str:language>', cache_page(60 * 360)(views.edge_tts_voices_list_by_lang),
          name='edge_tts_voices_list_by_lang'),
+    path('api/v1/fact_check_explorer', views.fact_check_explorer, name='fact_check_explorer'),
 ]
 
 urlpatterns += [

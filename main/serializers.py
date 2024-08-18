@@ -185,3 +185,14 @@ class PasswordGeneratorRequestSerializer(serializers.Serializer):
 class PasswordGeneratorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     password = serializers.CharField()
+
+class FactCheckExplorerRequestSerializer(serializers.Serializer):
+    query = serializers.CharField()
+    language = serializers.CharField()
+    num_results = serializers.IntegerField(default=200)
+
+
+class FactCheckExplorerSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    download_url = serializers.CharField()
+    data = serializers.ListField(child=serializers.CharField())
