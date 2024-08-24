@@ -18,16 +18,19 @@ from rest_framework import permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes, authentication_classes
 from rest_framework.pagination import PageNumberPagination
+from django.core.files.uploadedfile import TemporaryUploadedFile
 
 from app import settings
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
-from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files, edge_tts_locales
+from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files, edge_tts_locales, \
+    upload_and_share_yadisk
 from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
     YoutubeDlResponseSerializer, YoutubeDlRequestDownloadSerializer, YoutubeDlResponseErrorSerializer, \
     EdgeTtsVoicesSerializer, EdgeTtsLanguagesSerializer, EdgeTtsVoicesRequestSerializer, PasswordGeneratorSerializer, \
-    PasswordGeneratorRequestSerializer, FactCheckExplorerRequestSerializer, FactCheckExplorerSerializer
+    PasswordGeneratorRequestSerializer, FactCheckExplorerRequestSerializer, FactCheckExplorerSerializer, \
+    YandexDiskUploadResponseSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -567,6 +570,77 @@ def fact_check_explorer(request):
     output = {
         'success': True,
         'data': data
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['YandexDisk'],
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'file': {
+                    'type': 'string',
+                    'format': 'binary'
+                    },
+                'file_type': {'type': 'string'},
+                'dir_path': {'type': 'string'}
+                }
+            }
+        },
+    parameters=[
+        OpenApiParameter(
+            name='X-Yadisk-Token',
+            type=str,
+            location=OpenApiParameter.HEADER,
+            description='YandexDisk Token',
+        )
+    ],
+    responses={
+        (200, 'application/json'): YandexDiskUploadResponseSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def upload_and_share_yadisk_action(request):
+    yadisk_token = request.headers.get('X-Yadisk-Token')
+    yadisk_dir_path = request.data['dir_path'] if 'dir_path' in request.data else ''
+    file_type = request.data['file_type'] if 'file_type' in request.data else 'image'
+    file: TemporaryUploadedFile = request.data['file'] if 'file' in request.data else None
+
+    if file is None or file_type not in ['image', 'video', 'audio']:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'The request is empty.'}),
+                            content_type='application/json', status=420)
+
+    if file_type:
+        valid_types = {
+            'image': ['image/png', 'image/jpeg', 'image/jpg'],
+            'video': ['video/mp4', 'video/webm'],
+            'audio': ['audio/mp3', 'audio/mpeg', 'audio/wav']
+        }
+        if file.content_type not in valid_types[file_type]:
+            return HttpResponse(json.dumps({'success': False, 'detail': f'Unsupported {file_type} file type.'}))
+
+    valid_file_sizes = {
+        'image': 10 * 1024 * 1024,  # 10MB
+        'video': 100 * 1024 * 1024,  # 100 MB
+        'audio': 10 * 1024 * 1024  # 10 MB
+    }
+
+    if file.size > valid_file_sizes[file_type]:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'The file is too large.'}))
+
+    file_url, public_url, error_message = upload_and_share_yadisk(file.temporary_file_path(), yadisk_dir_path,
+                                                                  yadisk_token)
+
+    output = {
+        'success': not error_message,
+        'file_url': file_url,
+        'public_url': public_url,
+        'details': error_message
     }
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)

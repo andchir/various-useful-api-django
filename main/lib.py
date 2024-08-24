@@ -4,6 +4,7 @@ import edge_tts
 from datetime import datetime
 from edge_tts import VoicesManager
 from babel import Locale
+import yadisk
 
 
 async def edge_tts_find_voice(language=None, gender=None):
@@ -77,4 +78,31 @@ def delete_old_files(dir_path, max_hours=2):
             deleted += 1
     return deleted
 
+
+def upload_and_share_yadisk(file_path, dir_path, yadisk_token):
+    client = yadisk.Client(token=yadisk_token)
+    with client:
+        if not client.check_token():
+            # TODO: use refresh_token()
+            return None, None, 'YandexDisk token is invalid.'
+
+        base_name = os.path.basename(file_path)
+        result = client.upload(file_path, f'{dir_path}/{base_name}', overwrite=True, timeout=3600)
+
+        if result is None or not hasattr(result, 'path'):
+            return None, None, 'Failed to upload file.'
+
+        # print(f'Uploaded {base_name} to {dir_path}.')
+
+        result = client.publish(result.path)
+
+        if result is None or not hasattr(result, 'path'):
+            return None, None, 'Failed to upload file.'
+
+        # print(f'Published!')
+
+        meta = client.get_meta(result.path)
+        # print(meta)
+
+        return meta.file, meta.public_url, ''
 

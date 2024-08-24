@@ -196,3 +196,10 @@ class FactCheckExplorerSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     download_url = serializers.CharField()
     data = serializers.ListField(child=serializers.CharField())
+
+
+class YandexDiskUploadResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    file_url = serializers.CharField()
+    public_url = serializers.CharField()
+    details = serializers.CharField()

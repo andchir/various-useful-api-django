@@ -61,6 +61,7 @@ urlpatterns = [
     path('api/v1/edge_tts_voices_list_by_lang/<str:language>', cache_page(60 * 360)(views.edge_tts_voices_list_by_lang),
          name='edge_tts_voices_list_by_lang'),
     path('api/v1/fact_check_explorer', views.fact_check_explorer, name='fact_check_explorer'),
+    path('api/v1/upload_and_share_yadisk', views.upload_and_share_yadisk_action, name='upload_and_share_yadisk')
 ]
 
 urlpatterns += [
