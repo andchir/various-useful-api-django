@@ -10,6 +10,7 @@ WorkingDirectory=/home/andrew/python_projects/various-useful-api-django
 ExecStart=/home/andrew/python_projects/various-useful-api-django/venv/bin/gunicorn \
           --access-logfile - \
           --error-logfile '/home/andrew/python_projects/various-useful-api-django/gunicorn-errors.txt' \
+          --timeout 120 \
           --workers 3 \
           --bind unix:/run/gunicorn_price_monitoring.sock \
           app.wsgi:application
