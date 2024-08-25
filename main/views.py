@@ -622,7 +622,8 @@ def upload_and_share_yadisk_action(request):
             'audio': ['audio/mp3', 'audio/mpeg', 'audio/wav']
         }
         if file.content_type not in valid_types[file_type]:
-            return HttpResponse(json.dumps({'success': False, 'detail': f'Unsupported {file_type} file type.'}))
+            return HttpResponse(json.dumps({'success': False, 'detail': f'Unsupported {file_type} file type.'}),
+                                content_type='application/json', status=420)
 
     valid_file_sizes = {
         'image': 10 * 1024 * 1024,  # 10MB
@@ -631,7 +632,8 @@ def upload_and_share_yadisk_action(request):
     }
 
     if file.size > valid_file_sizes[file_type]:
-        return HttpResponse(json.dumps({'success': False, 'detail': 'The file is too large.'}))
+        return HttpResponse(json.dumps({'success': False, 'detail': 'The file is too large.'}),
+                            content_type='application/json', status=420)
 
     file_url, public_url, error_message = upload_and_share_yadisk(file.temporary_file_path(), yadisk_dir_path,
                                                                   yadisk_token)
