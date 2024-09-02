@@ -4,10 +4,20 @@ from app import settings
 from main.models import ProductModel, ImageModel, LogOwnerModel, LogItemModel
 
 
+class ImagesInline(admin.TabularInline):
+    model = ImageModel
+    list_display = ('id', '__str__', 'image')
+    fields = ('id', 'image')
+    extra = 0
+    can_delete = False
+    show_change_link = True
+
+
 @admin.register(ProductModel)
 class ProductModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'price', 'price_currency', 'published', 'shop_name', 'shop_address', 'city')
     list_display_links = ('id', 'name')
+    inlines = [ImagesInline]
 
 
 @admin.register(ImageModel)
