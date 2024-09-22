@@ -87,7 +87,13 @@ def upload_and_share_yadisk(file_path, dir_path, yadisk_token):
             return None, None, 'YandexDisk token is invalid.'
 
         base_name = os.path.basename(file_path)
-        result = client.upload(file_path, f'{dir_path}/{base_name}', overwrite=True, timeout=3600)
+        extension = os.path.splitext(base_name)[1]
+
+        if extension in ['.mp4', '.3gp', '.avi']:
+            result = client.upload(file_path, str(os.path.join(dir_path, base_name.replace(extension, ''))), overwrite=True, timeout=3600)
+            result = client.rename(result.path, base_name, overwrite=True)
+        else:
+            result = client.upload(file_path, f'{dir_path}/{base_name}', overwrite=True, timeout=3600)
 
         if result is None or not hasattr(result, 'path'):
             return None, None, 'Failed to upload file.'
