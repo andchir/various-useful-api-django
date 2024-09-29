@@ -8,9 +8,11 @@ Various useful APIs for api2app.ru.
 - API for monitoring changes in prices for products.
 - Logging - testing webhooks.
 - Downloading videos from YouTube (pytube).
-- Microsoft Text-to-Speech (edge-tts)
+- Unlimited Microsoft Text-to-Speech (edge-tts)
 - Password generator
 - FactCheckExplorer (https://github.com/GONZOsint/factcheckexplorer)
+- Unlimited Google Translate (googletrans)
+- Unlimited Google Text-to-Speech (gTTS)
 
 Create superuser:
 ~~~

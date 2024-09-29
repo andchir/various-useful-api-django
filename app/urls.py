@@ -53,6 +53,8 @@ urlpatterns = [
     path('api/v1/yt_dlp', views.yt_dlp_info, name='yt_dlp_info'),
     path('api/v1/create_log_record', views.create_log_record, name='create_log_record'),
     path('api/v1/create_log_record/<str:owner_uuid>', views.create_log_record, name='create_log_record_by_uuid'),
+
+    # edge_tts
     path('api/v1/edge_tts/<str:voice_id>', views.edge_tts, name='edge_tts'),
     path('api/v1/edge_tts_languages_list', cache_page(60 * 360)(views.edge_tts_languages_list),
          name='edge_tts_languages_list'),
@@ -60,8 +62,18 @@ urlpatterns = [
          name='edge_tts_voices_list'),
     path('api/v1/edge_tts_voices_list_by_lang/<str:language>', cache_page(60 * 360)(views.edge_tts_voices_list_by_lang),
          name='edge_tts_voices_list_by_lang'),
+
+    # fact_check_explorer
     path('api/v1/fact_check_explorer', views.fact_check_explorer, name='fact_check_explorer'),
-    path('api/v1/upload_and_share_yadisk', views.upload_and_share_yadisk_action, name='upload_and_share_yadisk')
+    path('api/v1/upload_and_share_yadisk', views.upload_and_share_yadisk_action, name='upload_and_share_yadisk'),
+
+    # googletrans_tts
+    path('api/v1/googletrans_languages_list', cache_page(60 * 360)(views.googletrans_languages_list),
+         name='googletrans_languages_list'),
+    path('api/v1/google_tts_languages_list', cache_page(60 * 360)(views.google_tts_languages_list),
+         name='google_tts_languages_list'),
+    path('api/v1/googletrans_translate', views.googletrans_translate, name='googletrans_translate'),
+    path('api/v1/google_tts', views.google_tts, name='google_tts'),
 ]
 
 urlpatterns += [

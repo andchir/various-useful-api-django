@@ -3,6 +3,8 @@ import json
 import os
 import uuid
 
+import googletrans
+import gtts
 from factcheckexplorer.factcheckexplorer import FactCheckLib
 import yt_dlp
 from django.http import HttpResponse
@@ -30,7 +32,9 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     YoutubeDlResponseSerializer, YoutubeDlRequestDownloadSerializer, YoutubeDlResponseErrorSerializer, \
     EdgeTtsVoicesSerializer, EdgeTtsLanguagesSerializer, EdgeTtsVoicesRequestSerializer, PasswordGeneratorSerializer, \
     PasswordGeneratorRequestSerializer, FactCheckExplorerRequestSerializer, FactCheckExplorerSerializer, \
-    YandexDiskUploadResponseSerializer
+    YandexDiskUploadResponseSerializer, GoogleTtsLanguagesSerializer, GoogleTransOutputSerializer, \
+    GoogleTransRequestSerializer, GoogleTTSRequestSerializer, GoogleTTSResponseSerializer, EdgeTtsResponseSerializer, \
+    EdgeTtsRequestSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -238,6 +242,8 @@ def create_log_record(request, owner_uuid=None):
     }
 )
 @api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def yt_dlp_info(request):
     """
         API endpoint for information about the video from YouTube.
@@ -296,6 +302,8 @@ def yt_dlp_info(request):
     }
 )
 @api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def youtube_dl_info(request):
     """
     API endpoint for information about the video from YouTube.
@@ -360,6 +368,8 @@ def youtube_dl_info(request):
     }
 )
 @api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def youtube_dl_download(request):
     """
     API endpoint for downloading videos from YouTube.
@@ -386,12 +396,133 @@ def youtube_dl_download(request):
 
 
 @extend_schema(
+    tags=['GoogleTransTTS'],
+    responses={
+        (200, 'application/json'): GoogleTtsLanguagesSerializer
+    }
+)
+@api_view(['GET'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def googletrans_languages_list(request):
+
+    languages = googletrans.LANGUAGES
+    languages_out = []
+    for key, value in languages.items():
+        languages_out.append({
+            'name': value.capitalize(),
+            'locale': key
+        })
+    output = {
+        'success': True,
+        'languages': languages_out
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['GoogleTransTTS'],
+    request=GoogleTransRequestSerializer,
+    responses={
+        (200, 'application/json'): GoogleTransOutputSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def googletrans_translate(request):
+    text = request.data['text'] if 'text' in request.data else None
+    lang_src = request.data['lang_src'] if 'lang_src' in request.data and request.data['lang_src'] else 'auto'
+    lang_dest = request.data['lang_dest'] if 'lang_dest' in request.data else 'en'
+
+    translator = googletrans.Translator()
+    translations = translator.translate(text, dest=lang_dest, src=lang_src)
+
+    output = {
+        'text': translations.text,
+        'lang_src': translations.src,
+        'lang_dest': lang_dest
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['GoogleTransTTS'],
+    responses={
+        (200, 'application/json'): GoogleTtsLanguagesSerializer
+    }
+)
+@api_view(['GET'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def google_tts_languages_list(request):
+
+    languages = gtts.lang.tts_langs()
+    languages_out = []
+    for key, value in languages.items():
+        languages_out.append({
+            'name': value.capitalize(),
+            'locale': key
+        })
+
+    output = {
+        'success': True,
+        'languages': languages_out
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['GoogleTransTTS'],
+    request=GoogleTTSRequestSerializer,
+    responses={
+        # (200, 'audio/mp3'): bytes
+        (200, 'application/json'): GoogleTTSResponseSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def google_tts(request):
+    text = request.data['text'] if 'text' in request.data else None
+    lang_dest = request.data['lang_dest'] if 'lang_dest' in request.data else 'en'
+    slow = request.data['slow'] if 'slow' in request.data else False
+
+    if text is None:
+        return HttpResponse(json.dumps({'success': False, 'message': 'The text cannot be empty.'}),
+                            content_type='application/json', status=422)
+
+    item_uuid = uuid.uuid1()
+    if not os.path.isdir(os.path.join(settings.MEDIA_ROOT, 'audio')):
+        os.mkdir(os.path.join(settings.MEDIA_ROOT, 'audio'))
+    audio_file_path = os.path.join(settings.MEDIA_ROOT, 'audio', str(item_uuid) + '.mp3')
+
+    delete_old_files(os.path.join(settings.MEDIA_ROOT, 'audio'))
+
+    tts = gtts.gTTS(text, lang=lang_dest, slow=slow)
+    tts.save(audio_file_path)
+
+    host_url = "{}://{}".format(request.scheme, request.get_host())
+
+    output = {
+        'audio': f"{host_url}/media/audio/{item_uuid}.mp3",
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
     tags=['EdgeTTS'],
     responses={
         (200, 'application/json'): EdgeTtsVoicesSerializer
     }
 )
 @api_view(['GET'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def edge_tts_voices_list(request):
     loop = asyncio.new_event_loop()
     try:
@@ -415,6 +546,8 @@ def edge_tts_voices_list(request):
     }
 )
 @api_view(['GET'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def edge_tts_voices_list_by_lang(request, language):
     gender = request.GET['gender'] if 'gender' in request.GET else None
     loop = asyncio.new_event_loop()
@@ -438,6 +571,8 @@ def edge_tts_voices_list_by_lang(request, language):
     }
 )
 @api_view(['GET'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def edge_tts_languages_list(request):
     loop = asyncio.new_event_loop()
     try:
@@ -455,11 +590,14 @@ def edge_tts_languages_list(request):
 
 @extend_schema(
     tags=['EdgeTTS'],
+    request=EdgeTtsRequestSerializer,
     responses={
-        (200, 'audio/mpeg'): bytes
+        (200, 'application/json'): EdgeTtsResponseSerializer
     }
 )
 @api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def edge_tts(request, voice_id):
     text = request.data['text'] if 'text' in request.data else None
 
@@ -479,13 +617,13 @@ def edge_tts(request, voice_id):
     finally:
         loop.close()
 
-    f = open(audio_file_path, 'rb')
-    response = HttpResponse()
-    response.write(f.read())
-    response['Content-Type'] = 'audio/mpeg'
-    response['Content-Length'] = os.path.getsize(audio_file_path)
+    host_url = "{}://{}".format(request.scheme, request.get_host())
 
-    return response
+    output = {
+        'audio': f"{host_url}/media/audio/{item_uuid}.mp3",
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
 
 @extend_schema(
@@ -496,6 +634,8 @@ def edge_tts(request, voice_id):
     }
 )
 @api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
 def password_generate(request):
     minlen = int(request.data['minlen']) if 'minlen' in request.data else 8
     maxlen = int(request.data['maxlen']) if 'maxlen' in request.data else 0

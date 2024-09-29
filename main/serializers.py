@@ -166,6 +166,10 @@ class EdgeTtsVoicesSerializer(serializers.Serializer):
     voices = EdgeTtsVoiceSerializer(many=True)
 
 
+class EdgeTtsRequestSerializer(serializers.Serializer):
+    text = serializers.CharField()
+
+
 class EdgeTtsLanguagesSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     languages = EdgeTtsLanguageSerializer(many=True)
@@ -173,6 +177,10 @@ class EdgeTtsLanguagesSerializer(serializers.Serializer):
 
 class EdgeTtsVoicesRequestSerializer(serializers.Serializer):
     gender = serializers.CharField()
+
+
+class EdgeTtsResponseSerializer(serializers.Serializer):
+    audio = serializers.CharField()
 
 
 class PasswordGeneratorRequestSerializer(serializers.Serializer):
@@ -203,3 +211,35 @@ class YandexDiskUploadResponseSerializer(serializers.Serializer):
     file_url = serializers.CharField()
     public_url = serializers.CharField()
     details = serializers.CharField()
+
+
+class GoogleTtsLanguageSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    locale = serializers.CharField()
+
+
+class GoogleTtsLanguagesSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    languages = GoogleTtsLanguageSerializer(many=True)
+
+
+class GoogleTransOutputSerializer(serializers.Serializer):
+    text = serializers.CharField()
+    lang_src = serializers.CharField()
+    lang_dest = serializers.CharField()
+
+
+class GoogleTransRequestSerializer(serializers.Serializer):
+    lang_src = serializers.CharField()
+    lang_dest = serializers.CharField()
+    text = serializers.CharField()
+
+
+class GoogleTTSRequestSerializer(serializers.Serializer):
+    lang_dest = serializers.CharField()
+    text = serializers.CharField()
+    slow = serializers.BooleanField()
+
+
+class GoogleTTSResponseSerializer(serializers.Serializer):
+    audio = serializers.CharField()
