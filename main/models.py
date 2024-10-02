@@ -63,6 +63,7 @@ class LogOwnerModel(models.Model):
     name = models.CharField(max_length=200)
     site_url = models.CharField(max_length=200, blank=True, null=True)
     uuid = models.UUIDField(default=uuid.uuid1, editable=False)
+    data = models.JSONField(blank=True, null=True)
 
     class Meta:
         db_table = 'log_owners'

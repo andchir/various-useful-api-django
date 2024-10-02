@@ -55,5 +55,6 @@ sudo systemctl enable price-monitoring.socket
 
 Commands:
 ~~~
-./manage.py site_monitoring
+./manage.py site_monitoring --uuid=4217211a-80e5-11ef-b5ed-9fe997cb3299
+./manage.py site_monitoring_log --uuid=4217211a-80e5-11ef-b5ed-9fe997cb3299
 ~~~
