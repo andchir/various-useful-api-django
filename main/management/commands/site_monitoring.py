@@ -1,7 +1,10 @@
 from ping3 import ping
+import requests
 from django.core.management.base import BaseCommand, CommandError
 from main.models import LogOwnerModel, LogItemModel
 import subprocess
+
+# ping.DEBUG = True
 
 
 class Command(BaseCommand):
@@ -27,14 +30,28 @@ class Command(BaseCommand):
             if not restart_command:
                 continue
             site_host = item.site_url.replace('http://', '').replace('https://', '').split('/')[0]
-            ping_seconds = ping(site_host, timeout=5)
-            if ping_seconds is False:
-                self.stdout.write(self.style.ERROR(f"Ping {site_host}: FAIL"))
+            site_url = item.site_url
+
+            if not site_url.startswith('http://') and not site_url.startswith('https://'):
+                site_url = 'https://' + site_url
+
+            self.stdout.write(self.style.WARNING(f"Checking {site_url}..."))
+
+            resp = requests.head(site_url)
+
+            # ping_seconds = ping(site_host, timeout=5)
+            # if ping_seconds is False:
+            if resp.status_code != 200:
+                self.stdout.write(self.style.ERROR(f"Checking {site_host} FAILED with status {resp.status_code}"))
                 result = subprocess.run(restart_command.split(' '), capture_output=True, text=True)
-                log_item = LogItemModel(owner=item, name='CRASH', data={'restart_result': result.stdout})
+                log_item = LogItemModel(
+                    owner=item,
+                    name='CRASH',
+                    data={'status_code': resp.status_code, 'restart_result': result.stdout}
+                )
                 log_item.save()
                 self.stdout.write(self.style.WARNING(result.stdout))
             else:
-                self.stdout.write(self.style.WARNING(f"Ping {site_host}: {ping_seconds}"))
+                self.stdout.write(self.style.WARNING(f"Status: {resp.status_code}"))
 
         self.stdout.write(self.style.SUCCESS('Done'))
