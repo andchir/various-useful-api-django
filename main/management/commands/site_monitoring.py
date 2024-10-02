@@ -35,7 +35,7 @@ class Command(BaseCommand):
             if not site_url.startswith('http://') and not site_url.startswith('https://'):
                 site_url = 'https://' + site_url
 
-            self.stdout.write(self.style.WARNING(f"Checking {site_url}..."))
+            self.stdout.write(self.style.WARNING(f"\nChecking {site_url}..."))
 
             resp = requests.head(site_url)
 
@@ -50,7 +50,7 @@ class Command(BaseCommand):
                     data={'status_code': resp.status_code, 'restart_result': result.stdout}
                 )
                 log_item.save()
-                self.stdout.write(self.style.WARNING(result.stdout))
+                self.stdout.write(self.style.WARNING(f'Restarted. {result.stdout}'))
             else:
                 self.stdout.write(self.style.WARNING(f"Status: {resp.status_code}"))
 
