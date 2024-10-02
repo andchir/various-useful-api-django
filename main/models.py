@@ -61,6 +61,7 @@ class LogOwnerModel(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     user = models.ForeignKey(User, related_name='log_owner', on_delete=models.CASCADE)
     name = models.CharField(max_length=200)
+    site_url = models.CharField(max_length=200, blank=True, null=True)
     uuid = models.UUIDField(default=uuid.uuid1, editable=False)
 
     class Meta:
@@ -75,6 +76,7 @@ class LogItemModel(models.Model):
     id = models.BigAutoField(primary_key=True)
     owner = models.ForeignKey(LogOwnerModel, related_name='log_items', on_delete=models.CASCADE)
     date_created = models.DateTimeField(auto_now_add=True)
+    name = models.CharField(max_length=200, blank=True, null=True)
     data = models.JSONField(blank=True, null=True)
     uuid = models.UUIDField(default=uuid.uuid1, editable=True, blank=True, null=True)
 
@@ -83,4 +85,4 @@ class LogItemModel(models.Model):
         verbose_name = 'Log'
 
     def __str__(self):
-        return "%s-%s-%s" % (self.owner.name, self.owner.uuid, self.id)
+        return "%s-%s" % (self.owner.name, self.id)

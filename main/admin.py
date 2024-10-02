@@ -4,10 +4,20 @@ from app import settings
 from main.models import ProductModel, ImageModel, LogOwnerModel, LogItemModel
 
 
+class LogsInline(admin.TabularInline):
+    model = LogItemModel
+    fields = ('id', 'date_created', 'name', 'data')
+    readonly_fields = ('date_created', 'name', 'data')
+    extra = 0
+    can_delete = False
+    show_change_link = True
+
+
 class ImagesInline(admin.TabularInline):
     model = ImageModel
     list_display = ('id', '__str__', 'image')
     fields = ('id', 'image')
+    max_num = 100
     extra = 0
     can_delete = False
     show_change_link = True
@@ -44,6 +54,7 @@ class ImageModelAdmin(admin.ModelAdmin):
 class ImageModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'uuid', 'date_created')
     list_display_links = ('id', 'name')
+    inlines = [LogsInline]
 
 
 @admin.register(LogItemModel)
