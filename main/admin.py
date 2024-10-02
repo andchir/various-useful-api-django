@@ -8,6 +8,7 @@ class LogsInline(admin.TabularInline):
     model = LogItemModel
     fields = ('id', 'date_created', 'name', 'data')
     readonly_fields = ('date_created', 'name', 'data')
+    ordering = ('-id',)
     extra = 0
     can_delete = False
     show_change_link = True

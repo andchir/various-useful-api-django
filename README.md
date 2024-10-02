@@ -52,3 +52,8 @@ Enable and start the socket (it will autostart at boot too):
 sudo systemctl start price-monitoring.socket
 sudo systemctl enable price-monitoring.socket
 ~~~
+
+Commands:
+~~~
+./manage.py site_monitoring
+~~~
