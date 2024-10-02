@@ -20,7 +20,7 @@ class Command(BaseCommand):
             else LogOwnerModel.objects.all()
 
         if len(items) == 0:
-            self.stdout.write(self.style.ERROR(f'Item not found ({item_uuid}).'))
+            self.stdout.write(self.style.ERROR(f'Items not found ({item_uuid}).'))
             return
 
         for item in items:
