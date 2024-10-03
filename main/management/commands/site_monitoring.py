@@ -38,7 +38,7 @@ class Command(BaseCommand):
             self.stdout.write(self.style.WARNING(f"\nChecking {site_url}..."))
 
             try:
-                resp = requests.head(site_url, timeout=4)
+                resp = requests.head(site_url, timeout=5)
                 status_code = resp.status_code
             except Exception as e:
                 # self.stdout.write(self.style.ERROR(f"\n{e}"))
