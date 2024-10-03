@@ -37,10 +37,12 @@ class Command(BaseCommand):
 
             self.stdout.write(self.style.WARNING(f"\nChecking {site_url}..."))
 
+            error_message = ''
             try:
                 resp = requests.head(site_url, timeout=5)
                 status_code = resp.status_code
             except Exception as e:
+                error_message = str(e)
                 # self.stdout.write(self.style.ERROR(f"\n{e}"))
                 status_code = 500
 
@@ -49,11 +51,12 @@ class Command(BaseCommand):
             if status_code != 200:
                 self.stdout.write(self.style.ERROR(f"Checking {site_host} FAILED with status {status_code}"))
                 result = subprocess.run(restart_command.split(' '), capture_output=True, text=True)
-                log_item = LogItemModel(
-                    owner=item,
-                    name='CRASH',
-                    data={'status_code': status_code, 'restart_result': result.stdout}
-                )
+                log_data = {'status_code': status_code}
+                if result.stdout:
+                    log_data['restart_result'] = result.stdout
+                if error_message:
+                    log_data['error_message'] = error_message
+                log_item = LogItemModel(owner=item, name='CRASH', data=log_data)
                 log_item.save()
                 self.stdout.write(self.style.WARNING(f'Restarted. {result.stdout}'))
             else:
