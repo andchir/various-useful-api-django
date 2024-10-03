@@ -41,7 +41,7 @@ class Command(BaseCommand):
                 resp = requests.head(site_url)
                 status_code = resp.status_code
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f"\n{e}"))
+                # self.stdout.write(self.style.ERROR(f"\n{e}"))
                 status_code = 500
 
             # ping_seconds = ping(site_host, timeout=5)
