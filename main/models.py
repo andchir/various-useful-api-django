@@ -5,6 +5,8 @@ from django_advance_thumbnail import AdvanceThumbnailField
 from django_resized import ResizedImageField
 import uuid
 
+from app.settings import ADMIN_LOG_OWNER_SECTION_NAME
+
 
 class ProductModel(models.Model):
     CURRENCIES_CHOICES = (
@@ -67,7 +69,8 @@ class LogOwnerModel(models.Model):
 
     class Meta:
         db_table = 'log_owners'
-        verbose_name = 'Log owner'
+        verbose_name = ADMIN_LOG_OWNER_SECTION_NAME
+        verbose_name_plural = ADMIN_LOG_OWNER_SECTION_NAME
 
     def __str__(self):
         return "%s-%s" % (self.name, self.uuid)

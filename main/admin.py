@@ -52,13 +52,13 @@ class ImageModelAdmin(admin.ModelAdmin):
 
 
 @admin.register(LogOwnerModel)
-class ImageModelAdmin(admin.ModelAdmin):
+class LogOwnerModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'uuid', 'date_created')
     list_display_links = ('id', 'name')
     inlines = [LogsInline]
 
 
 @admin.register(LogItemModel)
-class LogItemModel(admin.ModelAdmin):
+class LogItemModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'uuid', 'owner', 'date_created')
     list_display_links = ('id', 'uuid')

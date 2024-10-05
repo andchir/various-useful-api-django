@@ -13,8 +13,14 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 import os
 from dotenv import load_dotenv
 from pathlib import Path
+import environ
 
 load_dotenv()
+
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False)
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -29,7 +35,8 @@ SECRET_KEY = 'django-insecure-!0sl1fp*zw#)0pedg8s!u^gsue1)5*_)vc*4hzi#$##-_fa34a
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('APP_ENV') == 'dev'
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'api.api2app.ru']
+# ALLOWED_HOSTS = ['127.0.0.1', 'localhost', 'api.api2app.ru']
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS')
 
 
 # Application definition
@@ -82,6 +89,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'app.wsgi.application'
+ADMIN_LOG_OWNER_SECTION_NAME = env.str('ADMIN_LOG_OWNER_SECTION_NAME')
 
 
 # Database
