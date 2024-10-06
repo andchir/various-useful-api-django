@@ -39,7 +39,7 @@ class Command(BaseCommand):
 
             error_message = ''
             try:
-                resp = requests.head(site_url, timeout=10)
+                resp = requests.head(site_url, timeout=30)
                 status_code = resp.status_code
             except Exception as e:
                 error_message = str(e)
