@@ -3,6 +3,7 @@ import json
 import os
 import uuid
 
+import requests
 import googletrans
 import gtts
 from factcheckexplorer.factcheckexplorer import FactCheckLib
@@ -784,5 +785,40 @@ def upload_and_share_yadisk_action(request):
         'public_url': public_url,
         'details': error_message
     }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['Coggle']
+)
+@api_view(['GET'])
+def coggle_node_action(request, diagram_id, node_id):
+    access_token = request.GET['access_token'] if 'access_token' in request.GET else None
+    if access_token is None:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'access_token - missing.'}),
+                            content_type='application/json', status=420)
+
+    url = f'https://coggle.it/api/1/diagrams/{diagram_id}/nodes'
+    r = requests.get(url, params={'access_token': access_token})
+    if r.status_code != 200:
+        return HttpResponse(json.dumps(r.json()), content_type='application/json', status=r.status_code)
+
+    data = r.json()
+
+    def find_nodes(tree, id):
+        if tree['_id'] == id:
+            return tree
+        if len(tree['children']) == 0:
+            return None
+        for child in tree['children']:
+            node = find_nodes(child, id)
+            if node is not None:
+                return node
+        return None
+
+    output = find_nodes(data[0], node_id)
+    if output is None:
+        output = []
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)

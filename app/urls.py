@@ -74,6 +74,9 @@ urlpatterns = [
          name='google_tts_languages_list'),
     path('api/v1/googletrans_translate', views.googletrans_translate, name='googletrans_translate'),
     path('api/v1/google_tts', views.google_tts, name='google_tts'),
+
+    # coggle
+    path('api/v1/coggle_nodes/<str:diagram_id>/<str:node_id>', views.coggle_node_action, name='coggle_node'),
 ]
 
 urlpatterns += [
