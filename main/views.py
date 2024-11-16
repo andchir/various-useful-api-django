@@ -247,8 +247,8 @@ def create_log_record(request, owner_uuid=None):
 @permission_classes([permissions.IsAuthenticated])
 def yt_dlp_info(request):
     """
-        API endpoint for information about the video from YouTube.
-        """
+    API endpoint for information about the video from YouTube.
+    """
     url = request.data['url'] if 'url' in request.data else None
 
     if url is None:
@@ -282,15 +282,46 @@ def yt_dlp_info(request):
         }
 
     ydl_opts = {
-        'format': format_selector
+        'format': format_selector,
+        'outtmpl': 'media/video/output-%(id)s.%(ext)s'
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=False)
-        data = ydl.sanitize_info(info)
 
-        print(data)
+        try:
+            info = ydl.extract_info(url, download=False)
+            info = ydl.sanitize_info(info)
+            ydl.download(url)
+        except Exception as e:
+            # print(str(e))
+            info = {}
 
-    output = {'success': True}
+        host_url = "{}://{}".format(request.scheme, request.get_host())
+        video_ext = info['ext'] if 'ext' in info else ''
+        video_id = info['id'] if 'id' in info else ''
+
+        result = {
+            'id': video_id,
+            'title': info['title'] if 'title' in info else '',
+            # 'thumbnails': info['thumbnails'] if 'thumbnails' in info else [],
+            'thumbnail': info['thumbnail'] if 'thumbnail' in info else '',
+            'channel': info['channel'] if 'channel' in info else '',
+            'channel_id': info['channel_id'] if 'channel_id' in info else '',
+            'channel_url': info['channel_url'] if 'channel_id' in info else '',
+            'description': info['description'] if 'description' in info else '',
+            'duration': info['duration'] if 'duration' in info else 0,
+            'comment_count': info['comment_count'] if 'comment_count' in info else 0,
+            'view_count': info['view_count'] if 'view_count' in info else 0,
+            'video_url': f"{host_url}/media/video/output-{video_id}.{video_ext}" if video_id else ''
+        }
+
+    deleted = delete_old_files(os.path.join(settings.MEDIA_ROOT, 'video'))
+    # print(deleted)
+
+    if not result['id']:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'Video not found.', 'message': 'Video not found.'}),
+                            content_type='application/json', status=422)
+
+    output = {'success': result['id'] != '', 'result': result}
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
