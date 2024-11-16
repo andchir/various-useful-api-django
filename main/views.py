@@ -270,7 +270,7 @@ def yt_dlp_info(request):
 
         # acodec='none' means there is no audio
         best_video = next(f for f in formats
-                          if f['vcodec'] != 'none' and f['acodec'] == 'none')
+                          if f['vcodec'] != 'none' and f['acodec'] == 'none' and 'x720' in f['resolution'])
 
         # find compatible audio extension
         audio_ext = {'mp4': 'm4a', 'webm': 'webm'}[best_video['ext']]
@@ -290,7 +290,8 @@ def yt_dlp_info(request):
     ydl_opts = {
         'format': format_selector,
         'match_filter': video_match_filter,
-        'outtmpl': 'media/video/output-%(id)s.%(ext)s'
+        'outtmpl': 'media/video/output-%(id)s.%(ext)s',
+        'write-thumbnail': ''
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
