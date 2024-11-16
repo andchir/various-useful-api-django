@@ -100,6 +100,7 @@ class LogItemsModelSerializer(serializers.HyperlinkedModelSerializer):
 
 class YoutubeDlRequestSerializer(serializers.Serializer):
     url = serializers.CharField()
+    download = serializers.BooleanField()
 
 
 class YoutubeDlStreamSerializer(serializers.Serializer):

@@ -250,11 +250,15 @@ def yt_dlp_info(request):
     API endpoint for information about the video from YouTube.
     """
     url = request.data['url'] if 'url' in request.data else None
+    download = request.data['download'] if 'download' in request.data else False
     MAX_DURATION = 60 * 40  # 40 minutes
 
     if url is None:
         return HttpResponse(json.dumps({'success': False, 'message': 'There are no required fields.'}),
                             content_type='application/json', status=422)
+
+    deleted = delete_old_files(os.path.join(settings.MEDIA_ROOT, 'video'), max_hours=1)
+    # print(deleted)
 
     def video_match_filter(info, *, incomplete):
         duration = info.get('duration')
@@ -284,29 +288,40 @@ def yt_dlp_info(request):
             'ext': best_video['ext'],
             'requested_formats': [best_video, best_audio],
             # Must be + separated list of protocols
-            'protocol': f'{best_video["protocol"]}+{best_audio["protocol"]}'
+            'protocol': f'{best_video["protocol"]}+{best_audio["protocol"]}',
+            'url': best_video['url'],
+            'resolution': best_video['resolution'],
+            'comment_count': best_video['comment_count'] if 'comment_count' in best_video else 0
         }
 
     ydl_opts = {
         'format': format_selector,
-        'match_filter': video_match_filter,
-        'outtmpl': 'media/video/output-%(id)s.%(ext)s',
-        'write-thumbnail': ''
+        'outtmpl': 'media/video/output-%(id)s.%(ext)s'
     }
+    if download:
+        ydl_opts['match_filter'] = video_match_filter
+        ydl_opts['writethumbnail'] = True
+
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
 
         try:
             info = ydl.extract_info(url, download=False)
             info = ydl.sanitize_info(info)
-            ydl.download(url)
+            if download:
+                ydl.download(url)
         except Exception as e:
             print(str(e))
             info = {}
 
         host_url = "{}://{}".format(request.scheme, request.get_host())
         video_ext = info['ext'] if 'ext' in info else ''
+        thumbnail_ext = info['thumbnail'].split('.')[-1] if 'thumbnail' in info else ''
         video_id = info['id'] if 'id' in info else ''
         video_duration = info['duration'] if 'duration' in info else 0
+        video_url = (f"{host_url}/media/video/output-{video_id}.{video_ext}" if download and video_ext
+                         else (info['url'] if 'url' in info else ''))
+        thumbnail_url = (f"{host_url}/media/video/output-{video_id}.{thumbnail_ext}" if download and thumbnail_ext
+                         else (info['thumbnail'] if 'thumbnail' in info else ''))
 
         result = {
             'id': video_id,
@@ -318,13 +333,12 @@ def yt_dlp_info(request):
             'channel_url': info['channel_url'] if 'channel_id' in info else '',
             'description': info['description'] if 'description' in info else '',
             'duration': info['duration'] if 'duration' in info else 0,
+            'resolution': info['resolution'] if 'resolution' in info else '',
             'comment_count': info['comment_count'] if 'comment_count' in info else 0,
             'view_count': info['view_count'] if 'view_count' in info else 0,
-            'video_url': f"{host_url}/media/video/output-{video_id}.{video_ext}" if video_ext else ''
+            'video_url': video_url,
+            'thumbnail_url': thumbnail_url
         }
-
-    deleted = delete_old_files(os.path.join(settings.MEDIA_ROOT, 'video'), max_hours=1)
-    # print(deleted)
 
     if not result['id']:
         return HttpResponse(json.dumps({'success': False, 'message': 'Video not found.'}),
