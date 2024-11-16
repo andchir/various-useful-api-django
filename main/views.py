@@ -250,10 +250,16 @@ def yt_dlp_info(request):
     API endpoint for information about the video from YouTube.
     """
     url = request.data['url'] if 'url' in request.data else None
+    MAX_DURATION = 60 * 40  # 40 minutes
 
     if url is None:
         return HttpResponse(json.dumps({'success': False, 'message': 'There are no required fields.'}),
                             content_type='application/json', status=422)
+
+    def video_match_filter(info, *, incomplete):
+        duration = info.get('duration')
+        if duration and duration > MAX_DURATION:
+            return 'The video is too long.'
 
     def format_selector(ctx):
         """ Select the best video and the best audio that won't result in an mkv.
@@ -283,6 +289,7 @@ def yt_dlp_info(request):
 
     ydl_opts = {
         'format': format_selector,
+        'match_filter': video_match_filter,
         'outtmpl': 'media/video/output-%(id)s.%(ext)s'
     }
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
@@ -292,12 +299,13 @@ def yt_dlp_info(request):
             info = ydl.sanitize_info(info)
             ydl.download(url)
         except Exception as e:
-            # print(str(e))
+            print(str(e))
             info = {}
 
         host_url = "{}://{}".format(request.scheme, request.get_host())
         video_ext = info['ext'] if 'ext' in info else ''
         video_id = info['id'] if 'id' in info else ''
+        video_duration = info['duration'] if 'duration' in info else 0
 
         result = {
             'id': video_id,
@@ -311,14 +319,18 @@ def yt_dlp_info(request):
             'duration': info['duration'] if 'duration' in info else 0,
             'comment_count': info['comment_count'] if 'comment_count' in info else 0,
             'view_count': info['view_count'] if 'view_count' in info else 0,
-            'video_url': f"{host_url}/media/video/output-{video_id}.{video_ext}" if video_id else ''
+            'video_url': f"{host_url}/media/video/output-{video_id}.{video_ext}" if video_ext else ''
         }
 
-    deleted = delete_old_files(os.path.join(settings.MEDIA_ROOT, 'video'))
+    deleted = delete_old_files(os.path.join(settings.MEDIA_ROOT, 'video'), max_hours=1)
     # print(deleted)
 
     if not result['id']:
-        return HttpResponse(json.dumps({'success': False, 'detail': 'Video not found.', 'message': 'Video not found.'}),
+        return HttpResponse(json.dumps({'success': False, 'message': 'Video not found.'}),
+                            content_type='application/json', status=422)
+
+    if video_duration > MAX_DURATION:
+        return HttpResponse(json.dumps({'success': False, 'message': 'The video is too long.'}),
                             content_type='application/json', status=422)
 
     output = {'success': result['id'] != '', 'result': result}
