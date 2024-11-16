@@ -252,6 +252,7 @@ def yt_dlp_info(request):
     url = request.data['url'] if 'url' in request.data else None
     download = request.data['download'] if 'download' in request.data else False
     MAX_DURATION = 60 * 40  # 40 minutes
+    MAX_RESOLUTION = '1280x720'
 
     if url is None:
         return HttpResponse(json.dumps({'success': False, 'message': 'There are no required fields.'}),
@@ -272,15 +273,25 @@ def yt_dlp_info(request):
         # formats are already sorted worst to best
         formats = ctx.get('formats')[::-1]
 
+        resolutions = list(map(lambda x: x['resolution'] if 'resolution' in x else '', formats))
+        target_resolution = MAX_RESOLUTION if MAX_RESOLUTION in resolutions else resolutions[0]
+        format_index = resolutions.index(target_resolution)
+
         # acodec='none' means there is no audio
-        best_video = next(f for f in formats
-                          if f['vcodec'] != 'none' and f['acodec'] == 'none' and 'x720' in f['resolution'])
+        try:
+            best_video = next(f for f in formats
+                              if f['vcodec'] != 'none' and f['acodec'] == 'none' and f['resolution'] == target_resolution)
+        except StopIteration:
+            best_video = formats[format_index]
 
         # find compatible audio extension
         audio_ext = {'mp4': 'm4a', 'webm': 'webm'}[best_video['ext']]
         # vcodec='none' means there is no video
-        best_audio = next(f for f in formats if (
-                f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
+        try:
+            best_audio = next(f for f in formats if (
+                    f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
+        except StopIteration:
+            best_audio = formats[format_index]
 
         # These are the minimum required fields for a merged format
         yield {
