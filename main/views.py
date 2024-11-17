@@ -253,6 +253,7 @@ def yt_dlp_info(request):
     download = request.data['download'] if 'download' in request.data else False
     MAX_DURATION = 60 * 40  # 40 minutes
     MAX_RESOLUTION = '1280x720'
+    MAX_RESOLUTION_VERT = '720x1280'
 
     if url is None:
         return HttpResponse(json.dumps({'success': False, 'message': 'There are no required fields.'}),
@@ -274,13 +275,22 @@ def yt_dlp_info(request):
         formats = ctx.get('formats')[::-1]
 
         resolutions = list(map(lambda x: x['resolution'] if 'resolution' in x else '', formats))
-        target_resolution = MAX_RESOLUTION if MAX_RESOLUTION in resolutions else resolutions[0]
+        tmp_res_value = next(r for r in resolutions if 'x' in r)
+        tmp_res = tmp_res_value.split('x') if tmp_res_value else MAX_RESOLUTION.split('x')
+        is_vertical = int(tmp_res[0]) / int(tmp_res[1]) < 1
+        # print('resolutions', resolutions)
+        # print('is_vertical', is_vertical)
+        if is_vertical:
+            target_resolution = MAX_RESOLUTION_VERT if MAX_RESOLUTION_VERT in resolutions else resolutions[0]
+        else:
+            target_resolution = MAX_RESOLUTION if MAX_RESOLUTION in resolutions else resolutions[0]
         format_index = resolutions.index(target_resolution)
 
         # acodec='none' means there is no audio
         try:
             best_video = next(f for f in formats
-                              if f['vcodec'] != 'none' and f['acodec'] == 'none' and f['resolution'] == target_resolution)
+                              if (('vcodec' not in f or f['vcodec'] != 'none') and ('acodec' not in f or f['acodec'] == 'none'))
+                              and f['resolution'] == target_resolution)
         except StopIteration:
             best_video = formats[format_index]
 
@@ -288,8 +298,9 @@ def yt_dlp_info(request):
         audio_ext = {'mp4': 'm4a', 'webm': 'webm'}[best_video['ext']]
         # vcodec='none' means there is no video
         try:
-            best_audio = next(f for f in formats if (
-                    f['acodec'] != 'none' and f['vcodec'] == 'none' and f['ext'] == audio_ext))
+            best_audio = next(f for f in formats
+                              if (('acodec' not in f or f['acodec'] != 'none')
+                                  and ('vcodec' not in f or f['vcodec'] == 'none') and f['ext'] == audio_ext))
         except StopIteration:
             best_audio = formats[format_index]
 
@@ -321,7 +332,7 @@ def yt_dlp_info(request):
             if download:
                 ydl.download(url)
         except Exception as e:
-            print(str(e))
+            print('ERROR:', str(e))
             info = {}
 
         host_url = "{}://{}".format(request.scheme, request.get_host())
