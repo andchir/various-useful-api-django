@@ -64,7 +64,7 @@ def audio_to_base64(file_path):
     return base64_output
 
 
-def delete_old_files(dir_path, max_hours=2):
+def delete_old_files(dir_path, max_hours=2, print_time=False):
     files_list = os.listdir(dir_path)
     now = datetime.now()
     deleted = 0
@@ -74,6 +74,12 @@ def delete_old_files(dir_path, max_hours=2):
         file_stat = os.stat(os.path.join(dir_path, file))
         mtime = datetime.fromtimestamp(file_stat.st_ctime)
         diff = now - mtime
+        if print_time:
+            print('----------------------------------')
+            print(file, mtime)
+            print('diff_seconds:', diff.total_seconds())
+            print('diff_hours:', diff.total_seconds() / 60 / 60)
+            print('----------------------------------')
         if diff.total_seconds() / 60 / 60 > max_hours:
             # os.remove(os.path.join(dir_path, file))
             deleted += 1
