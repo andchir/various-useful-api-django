@@ -50,7 +50,7 @@ urlpatterns = [
     path('api/v1/password_generate', views.password_generate, name='password_generate'),
     path('api/v1/youtube_dl', views.youtube_dl_info, name='youtube_dl'),
     path('api/v1/youtube_dl/download', views.youtube_dl_download, name='youtube_dl_action'),
-    path('api/v1/yt_dlp', views.yt_dlp_info, name='yt_dlp_info'),
+    path('api/v1/yt_dlp', views.yt_dlp_action, name='yt_dlp_action'),
     path('api/v1/create_log_record', views.create_log_record, name='create_log_record'),
     path('api/v1/create_log_record/<str:owner_uuid>', views.create_log_record, name='create_log_record_by_uuid'),
 

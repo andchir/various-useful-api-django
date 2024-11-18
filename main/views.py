@@ -245,7 +245,7 @@ def create_log_record(request, owner_uuid=None):
 @api_view(['POST'])
 @authentication_classes([BasicAuthentication])
 @permission_classes([permissions.IsAuthenticated])
-def yt_dlp_info(request):
+def yt_dlp_action(request):
     """
     API endpoint for information about the video from YouTube.
     """
@@ -260,7 +260,7 @@ def yt_dlp_info(request):
                             content_type='application/json', status=422)
 
     deleted = delete_old_files(os.path.join(settings.MEDIA_ROOT, 'video'), max_hours=1)
-    # print(deleted)
+    # print('deleted:', deleted)
 
     def video_match_filter(info, *, incomplete):
         duration = info.get('duration')
@@ -373,6 +373,7 @@ def yt_dlp_info(request):
     output = {'success': result['id'] != '', 'result': result}
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
 
 @extend_schema(
     tags=['YouTube'],
