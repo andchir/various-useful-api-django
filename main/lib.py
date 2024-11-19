@@ -72,7 +72,7 @@ def delete_old_files(dir_path, max_hours=2, print_time=False):
         if not os.path.isfile(os.path.join(dir_path, file)):
             continue
         file_stat = os.stat(os.path.join(dir_path, file))
-        mtime = datetime.fromtimestamp(file_stat.st_ctime)
+        mtime = datetime.fromtimestamp(max(file_stat.st_ctime, file_stat.st_mtime))
         diff = now - mtime
         if print_time:
             print('----------------------------------')
