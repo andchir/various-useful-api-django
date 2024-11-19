@@ -81,7 +81,7 @@ def delete_old_files(dir_path, max_hours=2, print_time=False):
             print('diff_hours:', diff.total_seconds() / 60 / 60)
             print('----------------------------------')
         if diff.total_seconds() / 60 / 60 > max_hours:
-            # os.remove(os.path.join(dir_path, file))
+            os.remove(os.path.join(dir_path, file))
             deleted += 1
     return deleted
 
