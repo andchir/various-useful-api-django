@@ -879,6 +879,8 @@ def upload_and_share_yadisk_action(request):
             'properties': {
                 'folder_id': {'type': 'string'},
                 'search_index_id': {'type': 'string'},
+                'type': {'type': 'string'},
+                'system': {'type': 'string'},
                 'question': {'type': 'string'}
                 }
             }
@@ -902,6 +904,8 @@ def yandexgpt_assistant_action(request):
     token = request.headers.get('X-Yacloud-Api-Key')
     folder_id = request.data['folder_id'] if 'folder_id' in request.data else None
     search_index_id = request.data['search_index_id'] if 'search_index_id' in request.data else None
+    type = request.data['type'] if 'type' in request.data else 'model'
+    system = request.data['system'] if 'system' in request.data else ''
     question = request.data['question'] if 'question' in request.data else None
 
     if question is None:
@@ -912,37 +916,62 @@ def yandexgpt_assistant_action(request):
         return HttpResponse(json.dumps({'success': False, 'detail': 'The folder identifier is empty.'}),
                             content_type='application/json', status=420)
 
-    if search_index_id is None:
-        return HttpResponse(json.dumps({'success': False, 'detail': 'The index ID is empty.'}),
-                            content_type='application/json', status=420)
+    # if search_index_id is None:
+    #     return HttpResponse(json.dumps({'success': False, 'detail': 'The index ID is empty.'}),
+    #                         content_type='application/json', status=420)
 
     sdk = YCloudML(folder_id=folder_id, auth=token)
 
-    try:
-        search_index = sdk.search_indexes.get(search_index_id)
-    except Exception as e:
-        print(e)
-        return HttpResponse(json.dumps({'success': False, 'detail': 'Index not found.'}),
-                            content_type='application/json', status=420)
+    if type == 'model':
 
-    tool = sdk.tools.search_index(search_index)
+        model = sdk.models.completions('yandexgpt')
+        model = model.configure(temperature=0.5)
+        messages = [
+            {
+                'role': 'system',
+                'text': system
+            },
+            {
+                'role': 'user',
+                'text': question
+            }
+        ]
+        result = model.run(messages)
 
-    try:
-        assistant = sdk.assistants.create('yandexgpt', tools=[tool])
-    except Exception as e:
-        print(e)
-        return HttpResponse(json.dumps({'success': False, 'detail': 'Incorrect authorization data.'}),
-                            content_type='application/json', status=420)
+        result_text = ''
+        for alternative in result:
+            if len(result_text) > 0:
+                result_text += ' '
+            result_text += alternative.text
 
-    thread = sdk.threads.create()
+    else:
 
-    thread.write(question)
-    run = assistant.run(thread)
-    result = run.wait()
+        try:
+            search_index = sdk.search_indexes.get(search_index_id)
+        except Exception as e:
+            print(e)
+            return HttpResponse(json.dumps({'success': False, 'detail': 'Index not found.'}),
+                                content_type='application/json', status=420)
+
+        tool = sdk.tools.search_index(search_index)
+
+        try:
+            assistant = sdk.assistants.create('yandexgpt', tools=[tool])
+        except Exception as e:
+            print(e)
+            return HttpResponse(json.dumps({'success': False, 'detail': 'Incorrect authorization data.'}),
+                                content_type='application/json', status=420)
+
+        thread = sdk.threads.create()
+
+        thread.write(question)
+        run = assistant.run(thread)
+        result = run.wait()
+        result_text = result.text
 
     output = {
         'success': True,
-        'result': result.text
+        'result': result_text
     }
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
