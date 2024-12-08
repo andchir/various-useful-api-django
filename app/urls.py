@@ -66,6 +66,7 @@ urlpatterns = [
     # fact_check_explorer
     path('api/v1/fact_check_explorer', views.fact_check_explorer, name='fact_check_explorer'),
     path('api/v1/upload_and_share_yadisk', views.upload_and_share_yadisk_action, name='upload_and_share_yadisk'),
+    path('api/v1/yandexgpt_assistant', views.yandexgpt_assistant_action, name='yandexgpt_assistant'),
 
     # googletrans_tts
     path('api/v1/googletrans_languages_list', cache_page(60 * 360)(views.googletrans_languages_list),

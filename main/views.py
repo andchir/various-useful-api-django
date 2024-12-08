@@ -22,6 +22,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action, api_view, permission_classes, authentication_classes
 from rest_framework.pagination import PageNumberPagination
 from django.core.files.uploadedfile import TemporaryUploadedFile
+from yandex_cloud_ml_sdk import YCloudML
 
 from app import settings
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
@@ -35,7 +36,7 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     PasswordGeneratorRequestSerializer, FactCheckExplorerRequestSerializer, FactCheckExplorerSerializer, \
     YandexDiskUploadResponseSerializer, GoogleTtsLanguagesSerializer, GoogleTransOutputSerializer, \
     GoogleTransRequestSerializer, GoogleTTSRequestSerializer, GoogleTTSResponseSerializer, EdgeTtsResponseSerializer, \
-    EdgeTtsRequestSerializer
+    EdgeTtsRequestSerializer, YandexGPTResponseSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -865,6 +866,83 @@ def upload_and_share_yadisk_action(request):
         'file_url': file_url,
         'public_url': public_url,
         'details': error_message
+    }
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['YandexGPT'],
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'folder_id': {'type': 'string'},
+                'search_index_id': {'type': 'string'},
+                'question': {'type': 'string'}
+                }
+            }
+        },
+    parameters=[
+        OpenApiParameter(
+            name='X-Yacloud-Api-Key',
+            type=str,
+            location=OpenApiParameter.HEADER,
+            description='YandexCloud API Key',
+        )
+    ],
+    responses={
+        (200, 'application/json'): YandexGPTResponseSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def yandexgpt_assistant_action(request):
+    token = request.headers.get('X-Yacloud-Api-Key')
+    folder_id = request.data['folder_id'] if 'folder_id' in request.data else None
+    search_index_id = request.data['search_index_id'] if 'search_index_id' in request.data else None
+    question = request.data['question'] if 'question' in request.data else None
+
+    if question is None:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'The question cannot be empty.'}),
+                            content_type='application/json', status=420)
+
+    if folder_id is None:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'The folder identifier is empty.'}),
+                            content_type='application/json', status=420)
+
+    if search_index_id is None:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'The index ID is empty.'}),
+                            content_type='application/json', status=420)
+
+    sdk = YCloudML(folder_id=folder_id, auth=token)
+
+    try:
+        search_index = sdk.search_indexes.get(search_index_id)
+    except Exception as e:
+        print(e)
+        return HttpResponse(json.dumps({'success': False, 'detail': 'Index not found.'}),
+                            content_type='application/json', status=420)
+
+    tool = sdk.tools.search_index(search_index)
+
+    try:
+        assistant = sdk.assistants.create('yandexgpt', tools=[tool])
+    except Exception as e:
+        print(e)
+        return HttpResponse(json.dumps({'success': False, 'detail': 'Incorrect authorization data.'}),
+                            content_type='application/json', status=420)
+
+    thread = sdk.threads.create()
+
+    thread.write(question)
+    run = assistant.run(thread)
+    result = run.wait()
+
+    output = {
+        'success': True,
+        'result': result.text
     }
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)

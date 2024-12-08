@@ -214,6 +214,11 @@ class YandexDiskUploadResponseSerializer(serializers.Serializer):
     details = serializers.CharField()
 
 
+class YandexGPTResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    result = serializers.CharField()
+
+
 class GoogleTtsLanguageSerializer(serializers.Serializer):
     name = serializers.CharField()
     locale = serializers.CharField()

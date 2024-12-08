@@ -13,6 +13,7 @@ Various useful APIs for api2app.ru.
 - FactCheckExplorer (https://github.com/GONZOsint/factcheckexplorer)
 - Unlimited Google Translate (googletrans)
 - Unlimited Google Text-to-Speech (gTTS)
+- Use YandexCloud Assistant (https://yandex.cloud/ru/docs/foundation-models/operations/assistant/create-with-searchindex)
 
 Create superuser:
 ~~~
