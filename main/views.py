@@ -966,7 +966,7 @@ def yandexgpt_assistant_action(request):
 
         thread.write(question)
         run = assistant.run(thread)
-        result = run.wait()
+        result = run.wait(poll_interval=2)
         result_text = result.text
 
     output = {
