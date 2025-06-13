@@ -522,11 +522,16 @@ def googletrans_translate(request):
     lang_dest = request.data['lang_dest'] if 'lang_dest' in request.data else 'en'
 
     translator = googletrans.Translator()
-    translations = translator.translate(text, dest=lang_dest, src=lang_src)
+
+    loop = asyncio.new_event_loop()
+    try:
+        res = loop.run_until_complete(translator.translate(text, dest=lang_dest, src=lang_src))
+    finally:
+        loop.close()
 
     output = {
-        'text': translations.text,
-        'lang_src': translations.src,
+        'text':  res.text,
+        'lang_src':  res.src,
         'lang_dest': lang_dest
     }
 
