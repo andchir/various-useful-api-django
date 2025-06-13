@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import uuid
-
+import logging
 import requests
 import googletrans
 import gtts
@@ -40,6 +40,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
+
+logger = logging.getLogger('django')
 
 
 # Create your views here.
