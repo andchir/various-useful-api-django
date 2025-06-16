@@ -27,6 +27,11 @@ python manage.py makemigrations
 python manage.py migrate
 ~~~
 
+Run server in development mode:
+~~~
+python manage.py runserver
+~~~
+
 Copy all files from static folders into the STATIC_ROOT directory:
 ~~~
 python manage.py collectstatic

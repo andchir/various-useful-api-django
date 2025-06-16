@@ -865,8 +865,12 @@ def upload_and_share_yadisk_action(request):
         return HttpResponse(json.dumps({'success': False, 'detail': 'The file is too large.'}),
                             content_type='application/json', status=420)
 
-    file_url, public_url, error_message = upload_and_share_yadisk(file.temporary_file_path(), yadisk_dir_path,
-                                                                  yadisk_token)
+    try:
+        file_url, public_url, error_message = upload_and_share_yadisk(file.temporary_file_path(), yadisk_dir_path,
+                                                                      yadisk_token)
+    except Exception as e:
+        print(e)
+        file_url, public_url, error_message = (None, None, str(e))
 
     output = {
         'success': not error_message,
