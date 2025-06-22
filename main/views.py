@@ -856,7 +856,7 @@ def upload_and_share_yadisk_action(request):
                                 content_type='application/json', status=420)
 
     valid_file_sizes = {
-        'image': 10 * 1024 * 1024,  # 10MB
+        'image': 20 * 1024 * 1024,  # 20MB
         'video': 100 * 1024 * 1024,  # 100 MB
         'audio': 10 * 1024 * 1024  # 10 MB
     }
