@@ -1,9 +1,12 @@
 import os
 import base64
+import uuid
 import edge_tts
 from datetime import datetime
 from edge_tts import VoicesManager
 from babel import Locale
+from urllib.parse import urlparse
+import mimetypes
 import yadisk
 
 
@@ -118,4 +121,31 @@ def upload_and_share_yadisk(file_path, dir_path, yadisk_token):
         # print(meta)
 
         return meta.file, meta.public_url, ''
+
+
+def is_internal_url(url, request):
+    parsed_url = urlparse(url)
+    if not parsed_url.netloc:
+        return True
+
+    server_domain = request.get_host()
+    return parsed_url.netloc == server_domain
+
+
+def get_safe_filename(url, content_type, response_headers):
+    content_disposition = response_headers.get('Content-Disposition', '')
+    if 'filename=' in content_disposition:
+        filename = content_disposition.split('filename=')[1].strip('"\'')
+        if filename:
+            return filename
+
+    url_path = urlparse(url).path
+    filename = os.path.basename(url_path) if url_path else None
+
+    if not filename or '.' not in filename:
+        ext = mimetypes.guess_extension(content_type.split(';')[0].strip()) or '.txt'
+        filename = f'file_{uuid.uuid4().hex[:8]}{ext}'
+
+    filename = ''.join(c for c in filename if c.isalnum() or c in ('.', '-', '_'))
+    return filename[:255]
 

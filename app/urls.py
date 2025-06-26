@@ -47,7 +47,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.index, name='index'),
     path('api/v1/', include(router.urls)),
-    path('api/v1/password_generate', views.password_generate, name='password_generate'),
     path('api/v1/youtube_dl', views.youtube_dl_info, name='youtube_dl'),
     path('api/v1/youtube_dl/download', views.youtube_dl_download, name='youtube_dl_action'),
     path('api/v1/yt_dlp', views.yt_dlp_action, name='yt_dlp_action'),
@@ -78,6 +77,10 @@ urlpatterns = [
 
     # coggle
     path('api/v1/coggle_nodes/<str:diagram_id>/<str:node_id>', views.coggle_node_action, name='coggle_node'),
+
+    # Other
+    path('api/v1/password_generate', views.password_generate, name='password_generate'),
+    path('api/v1/download_file', views.download_file, name='download_file')
 ]
 
 urlpatterns += [

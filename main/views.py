@@ -1,6 +1,8 @@
 import asyncio
 import json
 import os
+import tempfile
+import urllib
 import uuid
 import logging
 import requests
@@ -8,7 +10,7 @@ import googletrans
 import gtts
 from factcheckexplorer.factcheckexplorer import FactCheckLib
 import yt_dlp
-from django.http import HttpResponse
+from django.http import HttpResponse, FileResponse
 from django.contrib.auth.models import User, Group
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
@@ -27,7 +29,7 @@ from yandex_cloud_ml_sdk import YCloudML
 from app import settings
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
 from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files, edge_tts_locales, \
-    upload_and_share_yadisk
+    upload_and_share_yadisk, is_internal_url, get_safe_filename
 from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
@@ -717,7 +719,66 @@ def edge_tts(request, voice_id):
 
 
 @extend_schema(
-    tags=['Password generator'],
+    tags=['Other'],
+    description='Download file by URL',
+    summary='Download file',
+    parameters=[
+        OpenApiParameter(
+            name='url',
+            description='File URL to download',
+            required=True,
+            type=str,
+            location=OpenApiParameter.QUERY
+        ),
+    ],
+    methods=['GET']
+)
+@api_view(['GET'])
+def download_file(request):
+    file_url = request.GET.get('url')
+
+    if not file_url:
+        return Response(
+            {'error': 'The \'url\' parameter is required.'},
+            status=400
+        )
+
+    if is_internal_url(file_url, request):
+        return Response(
+            {'error': 'Forbidden URL.'},
+            status=403
+        )
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            with urllib.request.urlopen(file_url) as response:
+                tmp_file.write(response.read())
+                content_type = response.headers.get('Content-Type', 'application/octet-stream')
+                headers = response.headers
+
+            filename = get_safe_filename(
+                file_url,
+                content_type,
+                headers
+            )
+
+            file = open(tmp_file.name, 'rb')
+            response = FileResponse(file)
+
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['Content-Type'] = 'application/octet-stream'
+
+            return response
+
+    except Exception as e:
+        return Response(
+            {'error': f'Error downloading file: {str(e)}'},
+            status=400
+        )
+
+
+@extend_schema(
+    tags=['Other'],
     request=PasswordGeneratorRequestSerializer,
     responses={
         (200, 'application/json'): PasswordGeneratorSerializer
