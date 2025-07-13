@@ -5,6 +5,7 @@ from langchain_community.vectorstores import FAISS
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from openai import AuthenticationError, RateLimitError, APIError
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.settings import BASE_DIR
@@ -22,9 +23,21 @@ def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api
         length_function=len
     )
     docs = text_splitter.split_text(text=source_text)
-    embeddings_model = OpenAIEmbeddings(model=model, openai_api_base=api_url_base, openai_api_key=api_key)
-    vector_store = FAISS.from_texts(docs, embeddings_model)
-    vector_store.save_local(storage_path)
+    try:
+        embeddings_model = OpenAIEmbeddings(model=model, openai_api_base=api_url_base, openai_api_key=api_key)
+        vector_store = FAISS.from_texts(docs, embeddings_model)
+        vector_store.save_local(storage_path)
+    except AuthenticationError as e:
+        raise ValueError('Invalid API key or authentication error.') from e
+
+    except RateLimitError as e:
+        raise RuntimeError('API rate limit exceeded, please try again later') from e
+
+    except APIError as e:
+        raise RuntimeError(f'OpenAI server error.') from e
+
+    except Exception as e:
+        raise RuntimeError(f'Failed to create vector store.') from e
 
     return file_id
 

@@ -65,7 +65,6 @@ urlpatterns = [
     # fact_check_explorer
     path('api/v1/fact_check_explorer', views.fact_check_explorer, name='fact_check_explorer'),
     path('api/v1/upload_and_share_yadisk', views.upload_and_share_yadisk_action, name='upload_and_share_yadisk'),
-    path('api/v1/yandexgpt_assistant', views.yandexgpt_assistant_action, name='yandexgpt_assistant'),
 
     # googletrans_tts
     path('api/v1/googletrans_languages_list', cache_page(60 * 360)(views.googletrans_languages_list),
@@ -80,7 +79,13 @@ urlpatterns = [
 
     # Other
     path('api/v1/password_generate', views.password_generate, name='password_generate'),
-    path('api/v1/download_file', views.download_file, name='download_file')
+    path('api/v1/download_file', views.download_file, name='download_file'),
+
+    # YandexGPT
+    path('api/v1/yandexgpt_assistant', views.yandexgpt_assistant_action, name='yandexgpt_assistant'),
+
+    # OpenAI Embeddings
+    path('api/v1/embeddings_create', views.embeddings_create_store_action, name='embeddings_create_store_action'),
 ]
 
 urlpatterns += [

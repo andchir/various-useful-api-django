@@ -27,6 +27,7 @@ from django.core.files.uploadedfile import TemporaryUploadedFile
 from yandex_cloud_ml_sdk import YCloudML
 
 from app import settings
+from main.embeddings import create_and_store_embeddings
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
 from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files, edge_tts_locales, \
     upload_and_share_yadisk, is_internal_url, get_safe_filename
@@ -38,7 +39,7 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     PasswordGeneratorRequestSerializer, FactCheckExplorerRequestSerializer, FactCheckExplorerSerializer, \
     YandexDiskUploadResponseSerializer, GoogleTtsLanguagesSerializer, GoogleTransOutputSerializer, \
     GoogleTransRequestSerializer, GoogleTTSRequestSerializer, GoogleTTSResponseSerializer, EdgeTtsResponseSerializer, \
-    EdgeTtsRequestSerializer, YandexGPTResponseSerializer
+    EdgeTtsRequestSerializer, YandexGPTResponseSerializer, OpenAIEmbeddingsResponseSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -1080,5 +1081,69 @@ def coggle_node_action(request, diagram_id, node_id):
     output = find_nodes(data[0], node_id)
     if output is None:
         output = []
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['OpenAI Embeddings'],
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'openai_api_url_base': {'type': 'string'},
+                'openai_model_name': {'type': 'string'},
+                'knowledge_content': {'type': 'text'}
+                }
+            }
+        },
+    parameters=[
+        OpenApiParameter(
+            name='X-OpenAI-Api-Key',
+            type=str,
+            location=OpenApiParameter.HEADER,
+            description='OpenAI API Key',
+        )
+    ],
+    responses={
+        (200, 'application/json'): OpenAIEmbeddingsResponseSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def embeddings_create_store_action(request):
+    api_key = request.headers.get('X-OpenAI-Api-Key')
+    openai_api_url_base = request.data.get('openai_api_url_base')
+    openai_model_name = request.data.get('openai_model_name')
+    knowledge_content = request.data.get('knowledge_content')
+
+    if api_key is None:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'API key is required.'}),
+                            content_type='application/json', status=420)
+
+    if not knowledge_content:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'Content is required.'}),
+                            content_type='application/json', status=420)
+
+    if not openai_api_url_base:
+        openai_api_url_base = 'https://api.openai.com/v1/'
+
+    if not openai_model_name:
+        openai_model_name = 'text-embedding-ada-002'
+
+    try:
+        store_uuid = create_and_store_embeddings(
+            knowledge_content,
+            model=openai_model_name,
+            api_key=api_key,
+            api_url_base=openai_api_url_base
+        )
+    except Exception as e:
+        error_message = str(e)
+        return HttpResponse(json.dumps({'success': False, 'detail': error_message}),
+                            content_type='application/json', status=400)
+
+    output = {'success': True, 'store_uuid': store_uuid}
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)

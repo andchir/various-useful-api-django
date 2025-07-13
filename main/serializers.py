@@ -249,3 +249,8 @@ class GoogleTTSRequestSerializer(serializers.Serializer):
 
 class GoogleTTSResponseSerializer(serializers.Serializer):
     audio = serializers.CharField()
+
+class OpenAIEmbeddingsResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    store_uuid = serializers.CharField()
+
