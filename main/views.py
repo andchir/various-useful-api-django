@@ -1157,6 +1157,7 @@ def embeddings_create_store_action(request):
             'type': 'object',
             'properties': {
                 'openai_api_url_base': {'type': 'string'},
+                'openai_embedding_model_name': {'type': 'string'},
                 'openai_model_name': {'type': 'string'},
                 'store_uuid': {'type': 'string'},
                 'question': {'type': 'text'}
@@ -1181,6 +1182,7 @@ def embeddings_create_store_action(request):
 def embeddings_store_question_action(request):
     api_key = request.headers.get('X-OpenAI-Api-Key')
     openai_api_url_base = request.data.get('openai_api_url_base')
+    openai_embedding_model_name = request.data.get('openai_embedding_model_name')
     openai_model_name = request.data.get('openai_model_name')
     store_uuid = request.data.get('store_uuid')
     question = request.data.get('question')
@@ -1203,10 +1205,14 @@ def embeddings_store_question_action(request):
     if not openai_model_name:
         openai_model_name = 'gpt-3.5-turbo'
 
+    if not openai_embedding_model_name:
+        openai_embedding_model_name = 'text-embedding-ada-002'
+
     try:
         answer = get_answer_with_embeddings(
             question,
             store_uuid,
+            embedding_model=openai_embedding_model_name,
             model=openai_model_name,
             api_key=api_key,
             api_url_base=openai_api_url_base
