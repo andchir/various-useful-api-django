@@ -1,7 +1,9 @@
 import os
 import sys
 import uuid
+
 from langchain_community.vectorstores import FAISS
+from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import RetrievalQA
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -14,7 +16,8 @@ VECTOR_STORAGE_PATH = os.path.join(BASE_DIR, 'vector_stores')
 os.makedirs(VECTOR_STORAGE_PATH, exist_ok=True)
 
 
-def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api_key=None, api_url_base=None):
+def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api_key=None,
+                                api_url_base=None, hf_api_token=None):
     file_id = str(uuid.uuid4())
     storage_path = os.path.join(VECTOR_STORAGE_PATH, file_id)
     text_splitter = RecursiveCharacterTextSplitter(
@@ -24,7 +27,14 @@ def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api
     )
     docs = text_splitter.split_text(text=source_text)
     try:
-        embeddings_model = OpenAIEmbeddings(model=model, openai_api_base=api_url_base, openai_api_key=api_key)
+        if hf_api_token:
+            embeddings_model = HuggingFaceEndpointEmbeddings(
+                model='sentence-transformers/all-mpnet-base-v2',
+                task='feature-extraction',
+                huggingfacehub_api_token=hf_api_token
+            )
+        else:
+            embeddings_model = OpenAIEmbeddings(model=model, openai_api_base=api_url_base, openai_api_key=api_key)
         vector_store = FAISS.from_texts(docs, embeddings_model)
         vector_store.save_local(storage_path)
     except AuthenticationError as e:
@@ -43,13 +53,20 @@ def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api
 
 
 def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedding-ada-002',
-                               model='gpt-3.5-turbo', api_key=None, api_url_base=None):
+                               model='gpt-3.5-turbo', api_key=None, api_url_base=None, hf_api_token=None):
     storage_path = os.path.join(VECTOR_STORAGE_PATH, file_uuid)
 
     if not os.path.exists(storage_path):
         raise Exception(f'Error: Store with UUID \'{file_uuid}\' not found.')
 
-    embeddings_model = OpenAIEmbeddings(model=embedding_model, openai_api_base=api_url_base, openai_api_key=api_key)
+    if hf_api_token:
+        embeddings_model = HuggingFaceEndpointEmbeddings(
+            model='sentence-transformers/all-mpnet-base-v2',
+            task='feature-extraction',
+            huggingfacehub_api_token=hf_api_token
+        )
+    else:
+        embeddings_model = OpenAIEmbeddings(model=embedding_model, openai_api_base=api_url_base, openai_api_key=api_key)
 
     vector_store = FAISS.load_local(
         storage_path,
@@ -83,25 +100,29 @@ if __name__ == '__main__':
     """
 
     API_KEY = ''
-    API_URL_BASE = 'https://api.openai.com/v1/'
+    API_URL_BASE = ''
     MODEL_NAME = 'gpt-3.5-turbo'
+    HF_API_TOKEN = ''
 
     # print("--- Создание базы знаний ---")
     # saved_uuid = create_and_store_embeddings(
     #     knowledge_base_text,
     #     api_key=API_KEY,
-    #     api_url_base=API_URL_BASE
+    #     api_url_base=API_URL_BASE,
+    #     hf_api_token=HF_API_TOKEN
     # )
     # print(f"База знаний сохранена с UUID: {saved_uuid}\n")
+    saved_uuid = 'c3f803bb-0139-479b-97dd-93106dd2e8e4'
 
     print("--- Получение ответа из базы знаний ---")
     user_question = "Кто основал компанию ТехноСфера и в каком году?"
     answer = get_answer_with_embeddings(
         user_question,
-        'ea4ccf0d-953b-4088-8433-d72ee7064422',
+        saved_uuid,
         model=MODEL_NAME,
         api_key=API_KEY,
-        api_url_base=API_URL_BASE
+        api_url_base=API_URL_BASE,
+        hf_api_token=HF_API_TOKEN
     )
 
     print(f"❓ Вопрос: {user_question}")
