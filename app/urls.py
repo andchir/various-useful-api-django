@@ -85,7 +85,8 @@ urlpatterns = [
     path('api/v1/yandexgpt_assistant', views.yandexgpt_assistant_action, name='yandexgpt_assistant'),
 
     # OpenAI Embeddings
-    path('api/v1/embeddings_create', views.embeddings_create_store_action, name='embeddings_create_store_action'),
+    path('api/v1/store_create', views.embeddings_create_store_action, name='embeddings_create_store_action'),
+    path('api/v1/store_question', views.embeddings_store_question_action, name='embeddings_store_question_action'),
 ]
 
 urlpatterns += [

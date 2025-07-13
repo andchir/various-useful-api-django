@@ -254,3 +254,6 @@ class OpenAIEmbeddingsResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     store_uuid = serializers.CharField()
 
+class OpenAIEmbeddingsQuestionResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    answer = serializers.CharField()

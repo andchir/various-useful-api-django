@@ -27,7 +27,7 @@ from django.core.files.uploadedfile import TemporaryUploadedFile
 from yandex_cloud_ml_sdk import YCloudML
 
 from app import settings
-from main.embeddings import create_and_store_embeddings
+from main.embeddings import create_and_store_embeddings, get_answer_with_embeddings
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
 from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files, edge_tts_locales, \
     upload_and_share_yadisk, is_internal_url, get_safe_filename
@@ -39,7 +39,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     PasswordGeneratorRequestSerializer, FactCheckExplorerRequestSerializer, FactCheckExplorerSerializer, \
     YandexDiskUploadResponseSerializer, GoogleTtsLanguagesSerializer, GoogleTransOutputSerializer, \
     GoogleTransRequestSerializer, GoogleTTSRequestSerializer, GoogleTTSResponseSerializer, EdgeTtsResponseSerializer, \
-    EdgeTtsRequestSerializer, YandexGPTResponseSerializer, OpenAIEmbeddingsResponseSerializer
+    EdgeTtsRequestSerializer, YandexGPTResponseSerializer, OpenAIEmbeddingsResponseSerializer, \
+    OpenAIEmbeddingsQuestionResponseSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -1145,5 +1146,76 @@ def embeddings_create_store_action(request):
                             content_type='application/json', status=400)
 
     output = {'success': True, 'store_uuid': store_uuid}
+
+    return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['OpenAI Embeddings'],
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'openai_api_url_base': {'type': 'string'},
+                'openai_model_name': {'type': 'string'},
+                'store_uuid': {'type': 'string'},
+                'question': {'type': 'text'}
+                }
+            }
+        },
+    parameters=[
+        OpenApiParameter(
+            name='X-OpenAI-Api-Key',
+            type=str,
+            location=OpenApiParameter.HEADER,
+            description='OpenAI API Key',
+        )
+    ],
+    responses={
+        (200, 'application/json'): OpenAIEmbeddingsQuestionResponseSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def embeddings_store_question_action(request):
+    api_key = request.headers.get('X-OpenAI-Api-Key')
+    openai_api_url_base = request.data.get('openai_api_url_base')
+    openai_model_name = request.data.get('openai_model_name')
+    store_uuid = request.data.get('store_uuid')
+    question = request.data.get('question')
+
+    if api_key is None:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'API key is required.'}),
+                            content_type='application/json', status=420)
+
+    if not store_uuid:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'Store ID is required.'}),
+                            content_type='application/json', status=420)
+
+    if not question:
+        return HttpResponse(json.dumps({'success': False, 'detail': 'Question is required.'}),
+                            content_type='application/json', status=420)
+
+    if not openai_api_url_base:
+        openai_api_url_base = 'https://api.openai.com/v1/'
+
+    if not openai_model_name:
+        openai_model_name = 'gpt-3.5-turbo'
+
+    try:
+        answer = get_answer_with_embeddings(
+            question,
+            store_uuid,
+            model=openai_model_name,
+            api_key=api_key,
+            api_url_base=openai_api_url_base
+        )
+    except Exception as e:
+        error_message = str(e)
+        return HttpResponse(json.dumps({'success': False, 'detail': error_message}),
+                            content_type='application/json', status=400)
+
+    output = {'success': True, 'answer': answer}
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
