@@ -191,8 +191,8 @@ CORS_ALLOWED_ORIGINS = [
     "http://api2app.loc",
     "http://api2app.ru",
     "https://api2app.ru",
-    "http://api2app.online",
-    "https://api2app.online"
+    "https://api.api2app.ru",
+    "https://api2.api2app.org"
 ]
 
 CORS_ORIGIN_WHITELIST = [
@@ -204,8 +204,8 @@ CORS_ORIGIN_WHITELIST = [
     "http://api2app.loc",
     "http://api2app.ru",
     "https://api2app.ru",
-    "http://api2app.online",
-    "https://api2app.online"
+    "https://api.api2app.ru",
+    "https://api2.api2app.org"
 ]
 
 CSRF_TRUSTED_ORIGINS = [
@@ -216,8 +216,8 @@ CSRF_TRUSTED_ORIGINS = [
     "http://api2app.loc",
     "http://api2app.ru",
     "https://api2app.ru",
-    "http://api2app.online",
-    "https://api2app.online"
+    "https://api.api2app.ru",
+    "https://api2.api2app.org"
 ]
 
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('APP_ENV') == 'dev'

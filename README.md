@@ -59,6 +59,8 @@ Enable and start the socket (it will autostart at boot too):
 ~~~
 sudo systemctl start price-monitoring.socket
 sudo systemctl enable price-monitoring.socket
+
+sudo systemctl restart price-monitoring.service
 ~~~
 
 Commands:
