@@ -192,6 +192,7 @@ CORS_ALLOWED_ORIGINS = [
     "http://api2app.ru",
     "https://api2app.ru",
     "https://api.api2app.ru",
+    "http://api2.api2app.org",
     "https://api2.api2app.org"
 ]
 
@@ -205,6 +206,7 @@ CORS_ORIGIN_WHITELIST = [
     "http://api2app.ru",
     "https://api2app.ru",
     "https://api.api2app.ru",
+    "http://api2.api2app.org",
     "https://api2.api2app.org"
 ]
 
@@ -217,11 +219,13 @@ CSRF_TRUSTED_ORIGINS = [
     "http://api2app.ru",
     "https://api2app.ru",
     "https://api.api2app.ru",
+    "http://api2.api2app.org",
     "https://api2.api2app.org"
 ]
 
+CORS_ALLOW_HEADERS = ['*']
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('APP_ENV') == 'dev'
-CORS_ALLOW_CREDENTIALS = os.environ.get('APP_ENV') == 'dev'
+CORS_ALLOW_CREDENTIALS = True
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media/')
