@@ -185,12 +185,9 @@ CACHES = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost",
     "http://localhost:4200",
-    "http://127.0.0.1:4200",
     "http://localhost:8000",
-    "http://127.0.0.1:8000",
     "http://api2app.loc",
-    "http://api2app.ru",
-    "https://api2app.ru",
+    "http://api.api2app.ru",
     "https://api.api2app.ru",
     "http://api2.api2app.org",
     "https://api2.api2app.org"
@@ -199,12 +196,9 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ORIGIN_WHITELIST = [
     "http://localhost",
     "http://localhost:4200",
-    "http://127.0.0.1:4200",
     "http://localhost:8000",
-    "http://127.0.0.1:8000",
     "http://api2app.loc",
-    "http://api2app.ru",
-    "https://api2app.ru",
+    "http://api.api2app.ru",
     "https://api.api2app.ru",
     "http://api2.api2app.org",
     "https://api2.api2app.org"
@@ -213,11 +207,9 @@ CORS_ORIGIN_WHITELIST = [
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost",
     "http://localhost:4200",
-    "http://127.0.0.1:4200",
     "http://localhost:8000",
     "http://api2app.loc",
-    "http://api2app.ru",
-    "https://api2app.ru",
+    "http://api.api2app.ru",
     "https://api.api2app.ru",
     "http://api2.api2app.org",
     "https://api2.api2app.org"
