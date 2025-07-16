@@ -27,7 +27,7 @@ Babel==2.14.0
 django-cors-headers==4.3.1
 random-password-generator==2.2.0
 yt-dlp==2024.8.6
-FactCheckExplorer==0.0.1
+FactCheckExplorer @ git+https://github.com/GONZOsint/factcheckexplorer.git
 yadisk==3.1.0
 googletrans==4.0.2
 gTTS==2.5.3
