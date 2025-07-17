@@ -1,6 +1,6 @@
 [Unit]
 Description=gunicorn daemon
-Requires=various_useful_apis.socket
+Requires=various-useful-apis.socket
 After=network.target
 
 [Service]

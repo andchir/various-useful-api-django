@@ -53,6 +53,8 @@ Deploy:
 ~~~
 sudo nano /etc/systemd/system/various-useful-apis.service
 sudo nano /etc/systemd/system/various-useful-apis.socket
+
+systemctl daemon-reload
 ~~~
 
 Enable and start the socket (it will autostart at boot too):
@@ -60,7 +62,7 @@ Enable and start the socket (it will autostart at boot too):
 sudo systemctl start various-useful-apis.socket
 sudo systemctl enable various-useful-apis.socket
 
-sudo systemctl restart various-useful-apis.service
+sudo service various-useful-apis start
 ~~~
 
 Commands:
