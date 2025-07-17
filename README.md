@@ -51,16 +51,16 @@ API schema URLs:
 
 Deploy:
 ~~~
-sudo nano /etc/systemd/system/price-monitoring.service
-sudo nano /etc/systemd/system/price-monitoring.socket
+sudo nano /etc/systemd/system/various-useful-apis.service
+sudo nano /etc/systemd/system/various-useful-apis.socket
 ~~~
 
 Enable and start the socket (it will autostart at boot too):
 ~~~
-sudo systemctl start price-monitoring.socket
-sudo systemctl enable price-monitoring.socket
+sudo systemctl start various-useful-apis.socket
+sudo systemctl enable various-useful-apis.socket
 
-sudo systemctl restart price-monitoring.service
+sudo systemctl restart various-useful-apis.service
 ~~~
 
 Commands:
