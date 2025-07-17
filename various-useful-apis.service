@@ -1,6 +1,6 @@
 [Unit]
 Description=gunicorn daemon
-Requires=price-monitoring.socket
+Requires=various_useful_apis.socket
 After=network.target
 
 [Service]
@@ -12,7 +12,7 @@ ExecStart=/home/andrew/python_projects/various-useful-api-django/venv/bin/gunico
           --error-logfile '/home/andrew/python_projects/various-useful-api-django/gunicorn-errors.txt' \
           --timeout 120 \
           --workers 3 \
-          --bind unix:/run/gunicorn_price_monitoring.sock \
+          --bind unix:/run/gunicorn_various_useful_apis.sock \
           app.wsgi:application
 
 [Install]

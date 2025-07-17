@@ -2,7 +2,7 @@
 Description=gunicorn socket
 
 [Socket]
-ListenStream=/run/gunicorn_price_monitoring.sock
+ListenStream=/run/gunicorn_various_useful_apis.sock
 SocketUser=www-data
 SocketMode=600
 
