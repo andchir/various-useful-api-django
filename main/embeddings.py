@@ -2,10 +2,12 @@ import os
 import sys
 import uuid
 
+from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_community.vectorstores import FAISS
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.chains import RetrievalQA
+from langchain.chains import RetrievalQA, create_retrieval_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from openai import AuthenticationError, RateLimitError, APIError
 
@@ -52,8 +54,8 @@ def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api
     return file_id
 
 
-def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedding-ada-002',
-                               model='gpt-3.5-turbo', api_key=None, api_url_base=None, hf_api_token=None):
+def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedding-ada-002', model='gpt-3.5-turbo',
+                               instructions='', api_key=None, api_url_base=None, hf_api_token=None):
     storage_path = os.path.join(VECTOR_STORAGE_PATH, file_uuid)
 
     if not os.path.exists(storage_path):
@@ -76,15 +78,25 @@ def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedd
 
     llm = ChatOpenAI(model_name=model, temperature=0.7, openai_api_base=api_url_base, openai_api_key=api_key)
 
-    qa_chain = RetrievalQA.from_chain_type(
-        llm=llm,
-        chain_type='stuff',
-        retriever=vector_store.as_retriever()
-    )
-
-    response = qa_chain.invoke({'query': question})
-
-    return response.get('result')
+    if instructions:
+        prompt = ChatPromptTemplate.from_messages(
+            [
+                ('system', instructions + ' Context: {context}'),
+                ('human', "{input}"),
+            ]
+        )
+        question_answer_chain = create_stuff_documents_chain(llm, prompt)
+        qa_chain = create_retrieval_chain(vector_store.as_retriever(), question_answer_chain)
+        response = qa_chain.invoke({'input': question})
+        return response.get('answer')
+    else:
+        qa_chain = RetrievalQA.from_chain_type(
+            llm=llm,
+            chain_type='stuff',
+            retriever=vector_store.as_retriever()
+        )
+        response = qa_chain.invoke({'query': question})
+        return response.get('result')
 
 
 if __name__ == '__main__':

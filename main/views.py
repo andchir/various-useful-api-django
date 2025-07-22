@@ -1160,6 +1160,7 @@ def embeddings_create_store_action(request):
                 'openai_embedding_model_name': {'type': 'string'},
                 'openai_model_name': {'type': 'string'},
                 'store_uuid': {'type': 'string'},
+                'instructions': {'type': 'text'},
                 'question': {'type': 'text'}
                 }
             }
@@ -1186,6 +1187,7 @@ def embeddings_store_question_action(request):
     openai_model_name = request.data.get('openai_model_name')
     store_uuid = request.data.get('store_uuid')
     question = request.data.get('question')
+    instructions = request.data.get('instructions')
 
     if api_key is None:
         return HttpResponse(json.dumps({'success': False, 'detail': 'API key is required.'}),
@@ -1214,11 +1216,13 @@ def embeddings_store_question_action(request):
             store_uuid,
             embedding_model=openai_embedding_model_name,
             model=openai_model_name,
+            instructions=instructions,
             api_key=api_key,
             api_url_base=openai_api_url_base
         )
     except Exception as e:
         error_message = str(e)
+        print(f'Error: {error_message}')
         return HttpResponse(json.dumps({'success': False, 'detail': error_message}),
                             content_type='application/json', status=400)
 
