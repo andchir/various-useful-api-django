@@ -896,8 +896,8 @@ def fact_check_explorer(request):
     }
 )
 @api_view(['POST'])
-@authentication_classes([BasicAuthentication])
-@permission_classes([permissions.IsAuthenticated])
+@authentication_classes([])
+@permission_classes([])
 def upload_and_share_yadisk_action(request):
     yadisk_token = request.headers.get('X-Yadisk-Token')
     yadisk_dir_path = request.data['dir_path'] if 'dir_path' in request.data else ''
@@ -972,8 +972,8 @@ def upload_and_share_yadisk_action(request):
     }
 )
 @api_view(['POST'])
-@authentication_classes([BasicAuthentication])
-@permission_classes([permissions.IsAuthenticated])
+@authentication_classes([])
+@permission_classes([])
 def yandexgpt_assistant_action(request):
     token = request.headers.get('X-Yacloud-Api-Key')
     folder_id = request.data['folder_id'] if 'folder_id' in request.data else None
