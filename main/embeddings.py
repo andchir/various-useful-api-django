@@ -40,15 +40,19 @@ def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api
         vector_store = FAISS.from_texts(docs, embeddings_model)
         vector_store.save_local(storage_path)
     except AuthenticationError as e:
+        print(e)
         raise ValueError('Invalid API key or authentication error.') from e
 
     except RateLimitError as e:
+        print(e)
         raise RuntimeError('API rate limit exceeded, please try again later') from e
 
     except APIError as e:
+        print(e)
         raise RuntimeError(f'OpenAI server error.') from e
 
     except Exception as e:
+        print(e)
         raise RuntimeError(f'Failed to create vector store.') from e
 
     return file_id
