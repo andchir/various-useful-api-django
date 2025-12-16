@@ -1,7 +1,6 @@
 import asyncio
 import json
 import os
-import subprocess
 import tempfile
 import urllib
 import uuid
@@ -32,6 +31,8 @@ from main.embeddings import create_and_store_embeddings, get_answer_with_embeddi
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
 from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files, edge_tts_locales, \
     upload_and_share_yadisk, is_internal_url, get_safe_filename
+from main.lib_ffmpeg import extract_frame_from_video, replace_audio_in_video, trim_video_segment, \
+    save_uploaded_file_to_temp
 from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
@@ -1308,121 +1309,28 @@ def extract_video_frame(request):
     frame_uuid = uuid.uuid1()
     output_file_path = os.path.join(frames_dir, f'{frame_uuid}.jpg')
 
+    temp_video_path = None
     try:
         # Save uploaded video to temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(video_file.name)[1]) as temp_video:
-            for chunk in video_file.chunks():
-                temp_video.write(chunk)
-            temp_video_path = temp_video.name
+        temp_video_path = save_uploaded_file_to_temp(video_file, suffix=os.path.splitext(video_file.name)[1])
 
-        # Prepare ffmpeg command
-        ffmpeg_path = '/usr/bin/ffmpeg'
-
-        if is_last:
-            # Extract the last frame
-            # First, get video duration
-            probe_cmd = [
-                ffmpeg_path,
-                '-i', temp_video_path,
-                '-hide_banner'
-            ]
-
-            try:
-                probe_result = subprocess.run(
-                    probe_cmd,
-                    capture_output=True,
-                    text=True,
-                    timeout=30
-                )
-
-                # Parse duration from ffmpeg output
-                duration_str = None
-                for line in probe_result.stderr.split('\n'):
-                    if 'Duration:' in line:
-                        duration_str = line.split('Duration:')[1].split(',')[0].strip()
-                        break
-
-                if duration_str:
-                    # Convert duration to seconds
-                    time_parts = duration_str.split(':')
-                    duration_seconds = float(time_parts[0]) * 3600 + float(time_parts[1]) * 60 + float(time_parts[2])
-                    # Seek to a moment slightly before the end to ensure we get a frame
-                    seek_time = max(0, duration_seconds - 0.1)
-                else:
-                    # If we can't determine duration, use reverse seeking
-                    seek_time = None
-            except subprocess.TimeoutExpired:
-                os.unlink(temp_video_path)
-                return HttpResponse(
-                    json.dumps({'success': False, 'message': 'Video processing timeout.'}),
-                    content_type='application/json',
-                    status=422
-                )
-            except Exception as e:
-                os.unlink(temp_video_path)
-                return HttpResponse(
-                    json.dumps({'success': False, 'message': f'Error processing video: {str(e)}'}),
-                    content_type='application/json',
-                    status=422
-                )
-
-            if seek_time is not None:
-                # Extract frame from calculated position
-                cmd = [
-                    ffmpeg_path,
-                    '-ss', str(seek_time),
-                    '-i', temp_video_path,
-                    '-vframes', '1',
-                    '-q:v', '2',  # High quality (2-5 is good, lower is better)
-                    '-y',
-                    output_file_path
-                ]
-            else:
-                # Alternative: use sseof to seek from end
-                cmd = [
-                    ffmpeg_path,
-                    '-sseof', '-0.1',
-                    '-i', temp_video_path,
-                    '-update', '1',
-                    '-q:v', '2',
-                    '-y',
-                    output_file_path
-                ]
-        else:
-            # Extract frame at specified second
-            cmd = [
-                ffmpeg_path,
-                '-ss', str(second),
-                '-i', temp_video_path,
-                '-vframes', '1',
-                '-q:v', '2',  # High quality JPG
-                '-y',
-                output_file_path
-            ]
-
-        # Execute ffmpeg command
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
+        # Extract frame using lib_ffmpeg
+        success, error_message = extract_frame_from_video(
+            video_path=temp_video_path,
+            output_path=output_file_path,
+            second=second,
+            is_last=is_last,
+            quality=2,
             timeout=60
         )
 
         # Clean up temporary video file
-        os.unlink(temp_video_path)
+        if temp_video_path and os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
 
-        if result.returncode != 0:
-            logger.error(f'FFmpeg error: {result.stderr}')
+        if not success:
             return HttpResponse(
-                json.dumps({'success': False, 'message': 'Failed to extract frame from video.'}),
-                content_type='application/json',
-                status=422
-            )
-
-        # Check if output file was created
-        if not os.path.exists(output_file_path):
-            return HttpResponse(
-                json.dumps({'success': False, 'message': 'Frame extraction failed.'}),
+                json.dumps({'success': False, 'message': error_message}),
                 content_type='application/json',
                 status=422
             )
@@ -1438,17 +1346,9 @@ def extract_video_frame(request):
 
         return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
-    except subprocess.TimeoutExpired:
-        if os.path.exists(temp_video_path):
-            os.unlink(temp_video_path)
-        return HttpResponse(
-            json.dumps({'success': False, 'message': 'Video processing timeout.'}),
-            content_type='application/json',
-            status=422
-        )
     except Exception as e:
         logger.error(f'Error extracting video frame: {str(e)}')
-        if os.path.exists(temp_video_path):
+        if temp_video_path and os.path.exists(temp_video_path):
             os.unlink(temp_video_path)
         return HttpResponse(
             json.dumps({'success': False, 'message': f'Error: {str(e)}'}),
@@ -1563,162 +1463,19 @@ def replace_video_audio(request):
     temp_audio_path = None
 
     try:
-        # Save uploaded video to temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(video_file.name)[1]) as temp_video:
-            for chunk in video_file.chunks():
-                temp_video.write(chunk)
-            temp_video_path = temp_video.name
+        # Save uploaded files to temporary locations
+        temp_video_path = save_uploaded_file_to_temp(video_file, suffix=os.path.splitext(video_file.name)[1])
+        temp_audio_path = save_uploaded_file_to_temp(audio_file, suffix=os.path.splitext(audio_file.name)[1])
 
-        # Save uploaded audio to temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio_file.name)[1]) as temp_audio:
-            for chunk in audio_file.chunks():
-                temp_audio.write(chunk)
-            temp_audio_path = temp_audio.name
-
-        # Prepare ffmpeg command
-        ffmpeg_path = '/usr/bin/ffmpeg'
-
-        # Get video duration first
-        probe_cmd = [
-            ffmpeg_path,
-            '-i', temp_video_path,
-            '-hide_banner'
-        ]
-
-        try:
-            probe_result = subprocess.run(
-                probe_cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-
-            # Parse duration from ffmpeg output
-            video_duration = None
-            for line in probe_result.stderr.split('\n'):
-                if 'Duration:' in line:
-                    duration_str = line.split('Duration:')[1].split(',')[0].strip()
-                    # Convert duration to seconds
-                    time_parts = duration_str.split(':')
-                    video_duration = float(time_parts[0]) * 3600 + float(time_parts[1]) * 60 + float(time_parts[2])
-                    break
-
-        except subprocess.TimeoutExpired:
-            if temp_video_path and os.path.exists(temp_video_path):
-                os.unlink(temp_video_path)
-            if temp_audio_path and os.path.exists(temp_audio_path):
-                os.unlink(temp_audio_path)
-            return HttpResponse(
-                json.dumps({'success': False, 'message': 'Video processing timeout.'}),
-                content_type='application/json',
-                status=422
-            )
-        except Exception as e:
-            if temp_video_path and os.path.exists(temp_video_path):
-                os.unlink(temp_video_path)
-            if temp_audio_path and os.path.exists(temp_audio_path):
-                os.unlink(temp_audio_path)
-            return HttpResponse(
-                json.dumps({'success': False, 'message': f'Error processing video: {str(e)}'}),
-                content_type='application/json',
-                status=422
-            )
-
-        # Get audio duration
-        audio_probe_cmd = [
-            ffmpeg_path,
-            '-i', temp_audio_path,
-            '-hide_banner'
-        ]
-
-        try:
-            audio_probe_result = subprocess.run(
-                audio_probe_cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-
-            # Parse audio duration from ffmpeg output
-            audio_duration = None
-            for line in audio_probe_result.stderr.split('\n'):
-                if 'Duration:' in line:
-                    duration_str = line.split('Duration:')[1].split(',')[0].strip()
-                    # Convert duration to seconds
-                    time_parts = duration_str.split(':')
-                    audio_duration = float(time_parts[0]) * 3600 + float(time_parts[1]) * 60 + float(time_parts[2])
-                    break
-
-        except subprocess.TimeoutExpired:
-            if temp_video_path and os.path.exists(temp_video_path):
-                os.unlink(temp_video_path)
-            if temp_audio_path and os.path.exists(temp_audio_path):
-                os.unlink(temp_audio_path)
-            return HttpResponse(
-                json.dumps({'success': False, 'message': 'Audio processing timeout.'}),
-                content_type='application/json',
-                status=422
-            )
-        except Exception as e:
-            if temp_video_path and os.path.exists(temp_video_path):
-                os.unlink(temp_video_path)
-            if temp_audio_path and os.path.exists(temp_audio_path):
-                os.unlink(temp_audio_path)
-            return HttpResponse(
-                json.dumps({'success': False, 'message': f'Error processing audio: {str(e)}'}),
-                content_type='application/json',
-                status=422
-            )
-
-        # Build ffmpeg command to replace audio
-        # Check if we need to apply fade-out
-        apply_fade_out = use_fade_out and audio_duration and video_duration and audio_duration > video_duration
-
-        if apply_fade_out:
-            # Calculate fade-out start time (3 seconds before video ends)
-            fade_duration = 3.0  # 3 seconds fade-out
-            fade_start = max(0, video_duration - fade_duration)
-
-            # Build command with audio fade-out filter
-            # -af "afade=t=out:st=START_TIME:d=DURATION"
-            cmd = [
-                ffmpeg_path,
-                '-i', temp_video_path,
-                '-i', temp_audio_path,
-                '-map', '0:v',  # Map video from first input
-                '-map', '1:a',  # Map audio from second input
-                '-c:v', 'copy',  # Copy video codec (no re-encoding)
-                '-c:a', 'aac',   # Encode audio to AAC
-                '-b:a', '192k',  # Audio bitrate
-                '-af', f'afade=t=out:st={fade_start}:d={fade_duration}',  # Apply fade-out
-                '-shortest',     # Use shortest duration (video or audio)
-                '-y',            # Overwrite output file
-                output_file_path
-            ]
-        else:
-            # Build standard command without fade-out
-            # -i video_input -i audio_input -map 0:v -map 1:a -c:v copy -c:a aac -shortest output.mp4
-            # The -shortest flag ensures output duration matches the shortest input (video or audio)
-            cmd = [
-                ffmpeg_path,
-                '-i', temp_video_path,
-                '-i', temp_audio_path,
-                '-map', '0:v',  # Map video from first input
-                '-map', '1:a',  # Map audio from second input
-                '-c:v', 'copy',  # Copy video codec (no re-encoding)
-                '-c:a', 'aac',   # Encode audio to AAC
-                '-b:a', '192k',  # Audio bitrate
-                '-shortest',     # Use shortest duration (video or audio)
-                '-y',            # Overwrite output file
-                output_file_path
-            ]
-
-        # Execute ffmpeg command
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=180  # 3 minutes timeout for processing
+        # Replace audio using lib_ffmpeg
+        success, error_message = replace_audio_in_video(
+            video_path=temp_video_path,
+            audio_path=temp_audio_path,
+            output_path=output_file_path,
+            use_fade_out=use_fade_out,
+            fade_duration=3.0,
+            audio_bitrate='192k',
+            timeout=180
         )
 
         # Clean up temporary files
@@ -1727,18 +1484,9 @@ def replace_video_audio(request):
         if temp_audio_path and os.path.exists(temp_audio_path):
             os.unlink(temp_audio_path)
 
-        if result.returncode != 0:
-            logger.error(f'FFmpeg error: {result.stderr}')
+        if not success:
             return HttpResponse(
-                json.dumps({'success': False, 'message': 'Failed to replace audio in video.'}),
-                content_type='application/json',
-                status=422
-            )
-
-        # Check if output file was created
-        if not os.path.exists(output_file_path):
-            return HttpResponse(
-                json.dumps({'success': False, 'message': 'Video processing failed.'}),
+                json.dumps({'success': False, 'message': error_message}),
                 content_type='application/json',
                 status=422
             )
@@ -1754,16 +1502,6 @@ def replace_video_audio(request):
 
         return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
-    except subprocess.TimeoutExpired:
-        if temp_video_path and os.path.exists(temp_video_path):
-            os.unlink(temp_video_path)
-        if temp_audio_path and os.path.exists(temp_audio_path):
-            os.unlink(temp_audio_path)
-        return HttpResponse(
-            json.dumps({'success': False, 'message': 'Video processing timeout.'}),
-            content_type='application/json',
-            status=422
-        )
     except Exception as e:
         logger.error(f'Error replacing video audio: {str(e)}')
         if temp_video_path and os.path.exists(temp_video_path):
@@ -1885,114 +1623,24 @@ def trim_video(request):
 
     try:
         # Save uploaded video to temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(video_file.name)[1]) as temp_video:
-            for chunk in video_file.chunks():
-                temp_video.write(chunk)
-            temp_video_path = temp_video.name
+        temp_video_path = save_uploaded_file_to_temp(video_file, suffix=os.path.splitext(video_file.name)[1])
 
-        # Prepare ffmpeg command
-        ffmpeg_path = '/usr/bin/ffmpeg'
-
-        # Get video duration first to validate time parameters
-        probe_cmd = [
-            ffmpeg_path,
-            '-i', temp_video_path,
-            '-hide_banner'
-        ]
-
-        try:
-            probe_result = subprocess.run(
-                probe_cmd,
-                capture_output=True,
-                text=True,
-                timeout=30
-            )
-
-            # Parse duration from ffmpeg output
-            video_duration = None
-            for line in probe_result.stderr.split('\n'):
-                if 'Duration:' in line:
-                    duration_str = line.split('Duration:')[1].split(',')[0].strip()
-                    # Convert duration to seconds
-                    time_parts = duration_str.split(':')
-                    video_duration = float(time_parts[0]) * 3600 + float(time_parts[1]) * 60 + float(time_parts[2])
-                    break
-
-            if video_duration is None:
-                if temp_video_path and os.path.exists(temp_video_path):
-                    os.unlink(temp_video_path)
-                return HttpResponse(
-                    json.dumps({'success': False, 'message': 'Could not determine video duration.'}),
-                    content_type='application/json',
-                    status=422
-                )
-
-            # Check if second_end exceeds video duration
-            if second_end > video_duration:
-                if temp_video_path and os.path.exists(temp_video_path):
-                    os.unlink(temp_video_path)
-                return HttpResponse(
-                    json.dumps({'success': False, 'message': f'Parameter second_end ({second_end}) exceeds video duration ({video_duration:.2f} seconds).'}),
-                    content_type='application/json',
-                    status=422
-                )
-
-        except subprocess.TimeoutExpired:
-            if temp_video_path and os.path.exists(temp_video_path):
-                os.unlink(temp_video_path)
-            return HttpResponse(
-                json.dumps({'success': False, 'message': 'Video processing timeout.'}),
-                content_type='application/json',
-                status=422
-            )
-        except Exception as e:
-            if temp_video_path and os.path.exists(temp_video_path):
-                os.unlink(temp_video_path)
-            return HttpResponse(
-                json.dumps({'success': False, 'message': f'Error processing video: {str(e)}'}),
-                content_type='application/json',
-                status=422
-            )
-
-        # Calculate trim duration
-        trim_duration = second_end - second_start
-
-        # Build ffmpeg command to trim video
-        # -ss: start time, -t: duration, -c copy: copy codec without re-encoding for speed
-        cmd = [
-            ffmpeg_path,
-            '-ss', str(second_start),
-            '-i', temp_video_path,
-            '-t', str(trim_duration),
-            '-c', 'copy',  # Copy codec without re-encoding
-            '-y',  # Overwrite output file
-            output_file_path
-        ]
-
-        # Execute ffmpeg command
-        result = subprocess.run(
-            cmd,
-            capture_output=True,
-            text=True,
-            timeout=180  # 3 minutes timeout for processing
+        # Trim video using lib_ffmpeg
+        success, error_message, video_duration = trim_video_segment(
+            video_path=temp_video_path,
+            output_path=output_file_path,
+            start_time=second_start,
+            end_time=second_end,
+            timeout=180
         )
 
         # Clean up temporary video file
         if temp_video_path and os.path.exists(temp_video_path):
             os.unlink(temp_video_path)
 
-        if result.returncode != 0:
-            logger.error(f'FFmpeg error: {result.stderr}')
+        if not success:
             return HttpResponse(
-                json.dumps({'success': False, 'message': 'Failed to trim video.'}),
-                content_type='application/json',
-                status=422
-            )
-
-        # Check if output file was created
-        if not os.path.exists(output_file_path):
-            return HttpResponse(
-                json.dumps({'success': False, 'message': 'Video trimming failed.'}),
+                json.dumps({'success': False, 'message': error_message}),
                 content_type='application/json',
                 status=422
             )
@@ -2008,14 +1656,6 @@ def trim_video(request):
 
         return HttpResponse(json.dumps(output), content_type='application/json', status=200)
 
-    except subprocess.TimeoutExpired:
-        if temp_video_path and os.path.exists(temp_video_path):
-            os.unlink(temp_video_path)
-        return HttpResponse(
-            json.dumps({'success': False, 'message': 'Video processing timeout.'}),
-            content_type='application/json',
-            status=422
-        )
     except Exception as e:
         logger.error(f'Error trimming video: {str(e)}')
         if temp_video_path and os.path.exists(temp_video_path):
