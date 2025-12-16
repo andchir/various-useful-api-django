@@ -1470,7 +1470,8 @@ def extract_video_frame(request):
                 'audio': {
                     'type': 'string',
                     'format': 'binary'
-                }
+                },
+                'use_fade_out': {'type': 'boolean', 'default': False}
             },
             'required': ['video', 'audio']
         }
@@ -1488,9 +1489,12 @@ def replace_video_audio(request):
     API endpoint for replacing or adding audio track to a video file.
     Accepts video file (max 100 MB) and audio file (max 50 MB).
     If audio duration is longer than video duration, uses video duration.
+    If use_fade_out is enabled and audio duration is longer than video duration,
+    adds a 3-second fade-out to the audio before the end.
     """
     video_file: TemporaryUploadedFile = request.data.get('video') if 'video' in request.data else None
     audio_file: TemporaryUploadedFile = request.data.get('audio') if 'audio' in request.data else None
+    use_fade_out = request.data.get('use_fade_out', 'false').lower() in ['true', '1', 'yes'] if isinstance(request.data.get('use_fade_out'), str) else bool(request.data.get('use_fade_out', False))
 
     # Validate required files
     if video_file is None:
@@ -1620,22 +1624,94 @@ def replace_video_audio(request):
                 status=422
             )
 
-        # Build ffmpeg command to replace audio
-        # -i video_input -i audio_input -map 0:v -map 1:a -c:v copy -c:a aac -shortest output.mp4
-        # The -shortest flag ensures output duration matches the shortest input (video or audio)
-        cmd = [
+        # Get audio duration
+        audio_probe_cmd = [
             ffmpeg_path,
-            '-i', temp_video_path,
             '-i', temp_audio_path,
-            '-map', '0:v',  # Map video from first input
-            '-map', '1:a',  # Map audio from second input
-            '-c:v', 'copy',  # Copy video codec (no re-encoding)
-            '-c:a', 'aac',   # Encode audio to AAC
-            '-b:a', '192k',  # Audio bitrate
-            '-shortest',     # Use shortest duration (video or audio)
-            '-y',            # Overwrite output file
-            output_file_path
+            '-hide_banner'
         ]
+
+        try:
+            audio_probe_result = subprocess.run(
+                audio_probe_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            # Parse audio duration from ffmpeg output
+            audio_duration = None
+            for line in audio_probe_result.stderr.split('\n'):
+                if 'Duration:' in line:
+                    duration_str = line.split('Duration:')[1].split(',')[0].strip()
+                    # Convert duration to seconds
+                    time_parts = duration_str.split(':')
+                    audio_duration = float(time_parts[0]) * 3600 + float(time_parts[1]) * 60 + float(time_parts[2])
+                    break
+
+        except subprocess.TimeoutExpired:
+            if temp_video_path and os.path.exists(temp_video_path):
+                os.unlink(temp_video_path)
+            if temp_audio_path and os.path.exists(temp_audio_path):
+                os.unlink(temp_audio_path)
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Audio processing timeout.'}),
+                content_type='application/json',
+                status=422
+            )
+        except Exception as e:
+            if temp_video_path and os.path.exists(temp_video_path):
+                os.unlink(temp_video_path)
+            if temp_audio_path and os.path.exists(temp_audio_path):
+                os.unlink(temp_audio_path)
+            return HttpResponse(
+                json.dumps({'success': False, 'message': f'Error processing audio: {str(e)}'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Build ffmpeg command to replace audio
+        # Check if we need to apply fade-out
+        apply_fade_out = use_fade_out and audio_duration and video_duration and audio_duration > video_duration
+
+        if apply_fade_out:
+            # Calculate fade-out start time (3 seconds before video ends)
+            fade_duration = 3.0  # 3 seconds fade-out
+            fade_start = max(0, video_duration - fade_duration)
+
+            # Build command with audio fade-out filter
+            # -af "afade=t=out:st=START_TIME:d=DURATION"
+            cmd = [
+                ffmpeg_path,
+                '-i', temp_video_path,
+                '-i', temp_audio_path,
+                '-map', '0:v',  # Map video from first input
+                '-map', '1:a',  # Map audio from second input
+                '-c:v', 'copy',  # Copy video codec (no re-encoding)
+                '-c:a', 'aac',   # Encode audio to AAC
+                '-b:a', '192k',  # Audio bitrate
+                '-af', f'afade=t=out:st={fade_start}:d={fade_duration}',  # Apply fade-out
+                '-shortest',     # Use shortest duration (video or audio)
+                '-y',            # Overwrite output file
+                output_file_path
+            ]
+        else:
+            # Build standard command without fade-out
+            # -i video_input -i audio_input -map 0:v -map 1:a -c:v copy -c:a aac -shortest output.mp4
+            # The -shortest flag ensures output duration matches the shortest input (video or audio)
+            cmd = [
+                ffmpeg_path,
+                '-i', temp_video_path,
+                '-i', temp_audio_path,
+                '-map', '0:v',  # Map video from first input
+                '-map', '1:a',  # Map audio from second input
+                '-c:v', 'copy',  # Copy video codec (no re-encoding)
+                '-c:a', 'aac',   # Encode audio to AAC
+                '-b:a', '192k',  # Audio bitrate
+                '-shortest',     # Use shortest duration (video or audio)
+                '-y',            # Overwrite output file
+                output_file_path
+            ]
 
         # Execute ffmpeg command
         result = subprocess.run(
