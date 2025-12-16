@@ -44,7 +44,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     OpenAIEmbeddingsQuestionResponseSerializer, VideoFrameExtractionRequestSerializer, \
     VideoFrameExtractionResponseSerializer, VideoFrameExtractionErrorSerializer, \
     VideoAudioReplacementRequestSerializer, VideoAudioReplacementResponseSerializer, \
-    VideoAudioReplacementErrorSerializer
+    VideoAudioReplacementErrorSerializer, VideoTrimRequestSerializer, VideoTrimResponseSerializer, \
+    VideoTrimErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -1683,6 +1684,256 @@ def replace_video_audio(request):
             os.unlink(temp_video_path)
         if temp_audio_path and os.path.exists(temp_audio_path):
             os.unlink(temp_audio_path)
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Error: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['Video'],
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'video': {
+                    'type': 'string',
+                    'format': 'binary'
+                },
+                'second_start': {'type': 'number', 'default': 0},
+                'second_end': {'type': 'number'}
+            },
+            'required': ['video']
+        }
+    },
+    responses={
+        (200, 'application/json'): VideoTrimResponseSerializer,
+        (422, 'application/json'): VideoTrimErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def trim_video(request):
+    """
+    API endpoint for trimming a video file.
+    Accepts video file (max 100 MB) and extracts a segment from second_start to second_end.
+    Returns trimmed video in MP4 format.
+    """
+    video_file: TemporaryUploadedFile = request.data.get('video') if 'video' in request.data else None
+    second_start = float(request.data.get('second_start', 0))
+    second_end = request.data.get('second_end')
+
+    # Validate video file is provided
+    if video_file is None:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Video file is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Validate second_end is provided
+    if second_end is None:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Parameter second_end is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        second_end = float(second_end)
+    except (ValueError, TypeError):
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Parameter second_end must be a number.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Validate time parameters
+    if second_start < 0:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Parameter second_start must be non-negative.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    if second_end <= second_start:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Parameter second_end must be greater than second_start.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Validate video file type
+    valid_video_types = ['video/mp4', 'video/webm', 'video/mpeg', 'video/quicktime', 'video/x-msvideo']
+    if video_file.content_type not in valid_video_types:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Unsupported video file type.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Validate file size (max 100 MB)
+    MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100 MB
+    if video_file.size > MAX_VIDEO_SIZE:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Video file is too large. Maximum size is 100 MB.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Create output directory if it doesn't exist
+    output_dir = os.path.join(settings.MEDIA_ROOT, 'video')
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    # Delete old files
+    delete_old_files(output_dir, max_hours=1)
+
+    # Generate unique filename for the output video
+    video_uuid = uuid.uuid1()
+    output_file_path = os.path.join(output_dir, f'{video_uuid}.mp4')
+
+    temp_video_path = None
+
+    try:
+        # Save uploaded video to temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(video_file.name)[1]) as temp_video:
+            for chunk in video_file.chunks():
+                temp_video.write(chunk)
+            temp_video_path = temp_video.name
+
+        # Prepare ffmpeg command
+        ffmpeg_path = '/usr/bin/ffmpeg'
+
+        # Get video duration first to validate time parameters
+        probe_cmd = [
+            ffmpeg_path,
+            '-i', temp_video_path,
+            '-hide_banner'
+        ]
+
+        try:
+            probe_result = subprocess.run(
+                probe_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            # Parse duration from ffmpeg output
+            video_duration = None
+            for line in probe_result.stderr.split('\n'):
+                if 'Duration:' in line:
+                    duration_str = line.split('Duration:')[1].split(',')[0].strip()
+                    # Convert duration to seconds
+                    time_parts = duration_str.split(':')
+                    video_duration = float(time_parts[0]) * 3600 + float(time_parts[1]) * 60 + float(time_parts[2])
+                    break
+
+            if video_duration is None:
+                if temp_video_path and os.path.exists(temp_video_path):
+                    os.unlink(temp_video_path)
+                return HttpResponse(
+                    json.dumps({'success': False, 'message': 'Could not determine video duration.'}),
+                    content_type='application/json',
+                    status=422
+                )
+
+            # Check if second_end exceeds video duration
+            if second_end > video_duration:
+                if temp_video_path and os.path.exists(temp_video_path):
+                    os.unlink(temp_video_path)
+                return HttpResponse(
+                    json.dumps({'success': False, 'message': f'Parameter second_end ({second_end}) exceeds video duration ({video_duration:.2f} seconds).'}),
+                    content_type='application/json',
+                    status=422
+                )
+
+        except subprocess.TimeoutExpired:
+            if temp_video_path and os.path.exists(temp_video_path):
+                os.unlink(temp_video_path)
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Video processing timeout.'}),
+                content_type='application/json',
+                status=422
+            )
+        except Exception as e:
+            if temp_video_path and os.path.exists(temp_video_path):
+                os.unlink(temp_video_path)
+            return HttpResponse(
+                json.dumps({'success': False, 'message': f'Error processing video: {str(e)}'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Calculate trim duration
+        trim_duration = second_end - second_start
+
+        # Build ffmpeg command to trim video
+        # -ss: start time, -t: duration, -c copy: copy codec without re-encoding for speed
+        cmd = [
+            ffmpeg_path,
+            '-ss', str(second_start),
+            '-i', temp_video_path,
+            '-t', str(trim_duration),
+            '-c', 'copy',  # Copy codec without re-encoding
+            '-y',  # Overwrite output file
+            output_file_path
+        ]
+
+        # Execute ffmpeg command
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=180  # 3 minutes timeout for processing
+        )
+
+        # Clean up temporary video file
+        if temp_video_path and os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
+
+        if result.returncode != 0:
+            logger.error(f'FFmpeg error: {result.stderr}')
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Failed to trim video.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Check if output file was created
+        if not os.path.exists(output_file_path):
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Video trimming failed.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Return the URL to the trimmed video
+        host_url = f"{request.scheme}://{request.get_host()}"
+        video_url = f"{host_url}/media/video/{video_uuid}.mp4"
+
+        output = {
+            'success': True,
+            'video_url': video_url
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except subprocess.TimeoutExpired:
+        if temp_video_path and os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Video processing timeout.'}),
+            content_type='application/json',
+            status=422
+        )
+    except Exception as e:
+        logger.error(f'Error trimming video: {str(e)}')
+        if temp_video_path and os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
         return HttpResponse(
             json.dumps({'success': False, 'message': f'Error: {str(e)}'}),
             content_type='application/json',
