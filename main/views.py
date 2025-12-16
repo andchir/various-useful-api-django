@@ -32,7 +32,7 @@ from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
 from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files, edge_tts_locales, \
     upload_and_share_yadisk, is_internal_url, get_safe_filename
 from main.lib_ffmpeg import extract_frame_from_video, replace_audio_in_video, trim_video_segment, \
-    save_uploaded_file_to_temp
+    save_uploaded_file_to_temp, concatenate_videos
 from main.models import ProductModel, LogOwnerModel, LogItemModel
 from main.serializers import UserSerializer, GroupSerializer, ProductModelSerializer, ProductModelListSerializer, \
     LogOwnerModelSerializer, LogItemsModelSerializer, YoutubeDlRequestSerializer, YoutubeDlResponseDownloadSerializer, \
@@ -46,7 +46,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     VideoFrameExtractionResponseSerializer, VideoFrameExtractionErrorSerializer, \
     VideoAudioReplacementRequestSerializer, VideoAudioReplacementResponseSerializer, \
     VideoAudioReplacementErrorSerializer, VideoTrimRequestSerializer, VideoTrimResponseSerializer, \
-    VideoTrimErrorSerializer
+    VideoTrimErrorSerializer, VideoConcatenationRequestSerializer, VideoConcatenationResponseSerializer, \
+    VideoConcatenationErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -1660,6 +1661,131 @@ def trim_video(request):
         logger.error(f'Error trimming video: {str(e)}')
         if temp_video_path and os.path.exists(temp_video_path):
             os.unlink(temp_video_path)
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Error: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['Video'],
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'videos': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'string',
+                        'format': 'binary'
+                    }
+                }
+            },
+            'required': ['videos']
+        }
+    },
+    responses={
+        (200, 'application/json'): VideoConcatenationResponseSerializer,
+        (422, 'application/json'): VideoConcatenationErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def concatenate_video_files(request):
+    """
+    API endpoint for concatenating multiple video files into one.
+    Accepts multiple video files (each max 100 MB).
+    All videos are scaled to match the first video's dimensions while preserving aspect ratio.
+    Videos are concatenated in the order they are provided.
+    """
+    # Get list of video files from request
+    video_files = request.FILES.getlist('videos')
+
+    # Validate that at least one video file is provided
+    if not video_files or len(video_files) == 0:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'At least one video file is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Validate video file types and sizes
+    valid_video_types = ['video/mp4', 'video/webm', 'video/mpeg', 'video/quicktime', 'video/x-msvideo']
+    MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100 MB
+
+    for i, video_file in enumerate(video_files):
+        if video_file.content_type not in valid_video_types:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': f'Unsupported video file type for video {i + 1}.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        if video_file.size > MAX_VIDEO_SIZE:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': f'Video file {i + 1} is too large. Maximum size is 100 MB.'}),
+                content_type='application/json',
+                status=422
+            )
+
+    # Create output directory if it doesn't exist
+    output_dir = os.path.join(settings.MEDIA_ROOT, 'video')
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    # Delete old files
+    delete_old_files(output_dir, max_hours=1)
+
+    # Generate unique filename for the output video
+    video_uuid = uuid.uuid1()
+    output_file_path = os.path.join(output_dir, f'{video_uuid}.mp4')
+
+    temp_video_paths = []
+
+    try:
+        # Save all uploaded videos to temporary files
+        for video_file in video_files:
+            temp_path = save_uploaded_file_to_temp(video_file, suffix=os.path.splitext(video_file.name)[1])
+            temp_video_paths.append(temp_path)
+
+        # Concatenate videos using lib_ffmpeg
+        success, error_message = concatenate_videos(
+            video_paths=temp_video_paths,
+            output_path=output_file_path,
+            timeout=300
+        )
+
+        # Clean up temporary video files
+        for temp_path in temp_video_paths:
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
+
+        if not success:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': error_message}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Return the URL to the concatenated video
+        host_url = f"{request.scheme}://{request.get_host()}"
+        video_url = f"{host_url}/media/video/{video_uuid}.mp4"
+
+        output = {
+            'success': True,
+            'video_url': video_url
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f'Error concatenating videos: {str(e)}')
+        # Clean up temporary files
+        for temp_path in temp_video_paths:
+            if temp_path and os.path.exists(temp_path):
+                os.unlink(temp_path)
         return HttpResponse(
             json.dumps({'success': False, 'message': f'Error: {str(e)}'}),
             content_type='application/json',

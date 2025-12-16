@@ -325,3 +325,170 @@ def save_uploaded_file_to_temp(uploaded_file, suffix: str = '') -> str:
         for chunk in uploaded_file.chunks():
             temp_file.write(chunk)
         return temp_file.name
+
+
+def get_video_dimensions(video_path: str, timeout: int = 30) -> Optional[Tuple[int, int]]:
+    """
+    Get video dimensions (width, height) using ffmpeg.
+
+    Args:
+        video_path: Path to the video file
+        timeout: Timeout in seconds for the ffmpeg command
+
+    Returns:
+        Tuple of (width, height), or None if unable to determine
+    """
+    probe_cmd = [
+        FFMPEG_PATH,
+        '-i', video_path,
+        '-hide_banner'
+    ]
+
+    try:
+        probe_result = subprocess.run(
+            probe_cmd,
+            capture_output=True,
+            text=True,
+            timeout=timeout
+        )
+
+        # Parse dimensions from ffmpeg output
+        for line in probe_result.stderr.split('\n'):
+            if 'Stream' in line and 'Video:' in line:
+                # Look for pattern like "1920x1080" or "1280x720"
+                import re
+                match = re.search(r'(\d{2,5})x(\d{2,5})', line)
+                if match:
+                    width = int(match.group(1))
+                    height = int(match.group(2))
+                    return (width, height)
+
+        return None
+
+    except (subprocess.TimeoutExpired, Exception) as e:
+        logger.error(f'Error getting video dimensions: {str(e)}')
+        return None
+
+
+def concatenate_videos(
+    video_paths: list,
+    output_path: str,
+    timeout: int = 300
+) -> Tuple[bool, Optional[str]]:
+    """
+    Concatenate multiple video files into one, scaling all videos to match
+    the first video's dimensions while preserving aspect ratio.
+
+    Args:
+        video_paths: List of paths to input video files
+        output_path: Path where the output video should be saved
+        timeout: Timeout in seconds for the ffmpeg command
+
+    Returns:
+        Tuple of (success: bool, error_message: Optional[str])
+    """
+    try:
+        if not video_paths or len(video_paths) == 0:
+            return False, 'No video files provided.'
+
+        if len(video_paths) == 1:
+            # If only one video, just copy it
+            import shutil
+            shutil.copy(video_paths[0], output_path)
+            return True, None
+
+        # Get dimensions of the first video (reference dimensions)
+        reference_dimensions = get_video_dimensions(video_paths[0], timeout=30)
+        if reference_dimensions is None:
+            return False, 'Could not determine dimensions of the first video.'
+
+        ref_width, ref_height = reference_dimensions
+
+        # Create a temporary directory for scaled videos
+        with tempfile.TemporaryDirectory() as temp_dir:
+            scaled_video_paths = []
+
+            # Scale all videos to match the first video's dimensions
+            for i, video_path in enumerate(video_paths):
+                scaled_video_path = os.path.join(temp_dir, f'scaled_{i}.mp4')
+
+                # Build ffmpeg command to scale video
+                # Using scale filter with pad to maintain aspect ratio
+                # Formula: scale to fit within reference dimensions, then pad to exact size
+                scale_filter = (
+                    f"scale=w={ref_width}:h={ref_height}:force_original_aspect_ratio=decrease,"
+                    f"pad={ref_width}:{ref_height}:(ow-iw)/2:(oh-ih)/2"
+                )
+
+                cmd = [
+                    FFMPEG_PATH,
+                    '-i', video_path,
+                    '-vf', scale_filter,
+                    '-c:v', 'libx264',
+                    '-preset', 'medium',
+                    '-crf', '23',
+                    '-c:a', 'aac',
+                    '-b:a', '192k',
+                    '-y',
+                    scaled_video_path
+                ]
+
+                # Execute scaling command
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=timeout
+                )
+
+                if result.returncode != 0:
+                    logger.error(f'FFmpeg scaling error for video {i}: {result.stderr}')
+                    return False, f'Failed to scale video {i + 1}.'
+
+                if not os.path.exists(scaled_video_path):
+                    return False, f'Scaling failed for video {i + 1}.'
+
+                scaled_video_paths.append(scaled_video_path)
+
+            # Create concat file list for ffmpeg
+            concat_list_path = os.path.join(temp_dir, 'concat_list.txt')
+            with open(concat_list_path, 'w') as f:
+                for scaled_path in scaled_video_paths:
+                    # Escape single quotes in paths
+                    escaped_path = scaled_path.replace("'", "'\\''")
+                    f.write(f"file '{escaped_path}'\n")
+
+            # Concatenate videos using concat demuxer
+            concat_cmd = [
+                FFMPEG_PATH,
+                '-f', 'concat',
+                '-safe', '0',
+                '-i', concat_list_path,
+                '-c', 'copy',
+                '-y',
+                output_path
+            ]
+
+            # Execute concatenation command
+            concat_result = subprocess.run(
+                concat_cmd,
+                capture_output=True,
+                text=True,
+                timeout=timeout
+            )
+
+            if concat_result.returncode != 0:
+                logger.error(f'FFmpeg concat error: {concat_result.stderr}')
+                return False, 'Failed to concatenate videos.'
+
+            # Check if output file was created
+            if not os.path.exists(output_path):
+                return False, 'Video concatenation failed.'
+
+        return True, None
+
+    except subprocess.TimeoutExpired:
+        return False, 'Video processing timeout.'
+    except Exception as e:
+        logger.error(f'Error concatenating videos: {str(e)}')
+        return False, f'Error: {str(e)}'
