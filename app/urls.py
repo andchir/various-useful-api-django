@@ -90,6 +90,7 @@ urlpatterns = [
 
     # Video
     path('api/v1/extract_video_frame', views.extract_video_frame, name='extract_video_frame'),
+    path('api/v1/replace_video_audio', views.replace_video_audio, name='replace_video_audio'),
 ]
 
 urlpatterns += [
