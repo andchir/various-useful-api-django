@@ -1285,6 +1285,16 @@ def extract_video_frame(request):
             status=422
         )
 
+    # Validate file sizes
+    MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100 MB
+
+    if video_file.size > MAX_VIDEO_SIZE:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Video file is too large. Maximum size is 100 MB.'}),
+            content_type='application/json',
+            status=422
+        )
+
     # Create frames directory if it doesn't exist
     frames_dir = os.path.join(settings.MEDIA_ROOT, 'frames')
     if not os.path.isdir(frames_dir):
