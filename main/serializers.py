@@ -292,3 +292,14 @@ class VideoTrimResponseSerializer(serializers.Serializer):
 class VideoTrimErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+class VideoConcatenationRequestSerializer(serializers.Serializer):
+    pass  # Files are handled via multipart/form-data
+
+class VideoConcatenationResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    video_url = serializers.CharField()
+
+class VideoConcatenationErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
