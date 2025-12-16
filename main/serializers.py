@@ -269,3 +269,14 @@ class VideoFrameExtractionResponseSerializer(serializers.Serializer):
 class VideoFrameExtractionErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+class VideoAudioReplacementRequestSerializer(serializers.Serializer):
+    pass  # Files are handled via multipart/form-data
+
+class VideoAudioReplacementResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    video_url = serializers.CharField()
+
+class VideoAudioReplacementErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()

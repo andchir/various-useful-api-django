@@ -42,7 +42,9 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     GoogleTransRequestSerializer, GoogleTTSRequestSerializer, GoogleTTSResponseSerializer, EdgeTtsResponseSerializer, \
     EdgeTtsRequestSerializer, YandexGPTResponseSerializer, OpenAIEmbeddingsResponseSerializer, \
     OpenAIEmbeddingsQuestionResponseSerializer, VideoFrameExtractionRequestSerializer, \
-    VideoFrameExtractionResponseSerializer, VideoFrameExtractionErrorSerializer
+    VideoFrameExtractionResponseSerializer, VideoFrameExtractionErrorSerializer, \
+    VideoAudioReplacementRequestSerializer, VideoAudioReplacementResponseSerializer, \
+    VideoAudioReplacementErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -1437,6 +1439,250 @@ def extract_video_frame(request):
         logger.error(f'Error extracting video frame: {str(e)}')
         if os.path.exists(temp_video_path):
             os.unlink(temp_video_path)
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Error: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['Video'],
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'video': {
+                    'type': 'string',
+                    'format': 'binary'
+                },
+                'audio': {
+                    'type': 'string',
+                    'format': 'binary'
+                }
+            },
+            'required': ['video', 'audio']
+        }
+    },
+    responses={
+        (200, 'application/json'): VideoAudioReplacementResponseSerializer,
+        (422, 'application/json'): VideoAudioReplacementErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def replace_video_audio(request):
+    """
+    API endpoint for replacing or adding audio track to a video file.
+    Accepts video file (max 100 MB) and audio file (max 50 MB).
+    If audio duration is longer than video duration, uses video duration.
+    """
+    video_file: TemporaryUploadedFile = request.data.get('video') if 'video' in request.data else None
+    audio_file: TemporaryUploadedFile = request.data.get('audio') if 'audio' in request.data else None
+
+    # Validate required files
+    if video_file is None:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Video file is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    if audio_file is None:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Audio file is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Validate video file type
+    valid_video_types = ['video/mp4', 'video/webm', 'video/mpeg', 'video/quicktime', 'video/x-msvideo']
+    if video_file.content_type not in valid_video_types:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Unsupported video file type.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Validate audio file type
+    valid_audio_types = ['audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/x-wav', 'audio/aac', 'audio/m4a', 'audio/ogg']
+    if audio_file.content_type not in valid_audio_types:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Unsupported audio file type.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Validate file sizes
+    MAX_VIDEO_SIZE = 100 * 1024 * 1024  # 100 MB
+    MAX_AUDIO_SIZE = 50 * 1024 * 1024   # 50 MB
+
+    if video_file.size > MAX_VIDEO_SIZE:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Video file is too large. Maximum size is 100 MB.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    if audio_file.size > MAX_AUDIO_SIZE:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Audio file is too large. Maximum size is 50 MB.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Create output directory if it doesn't exist
+    output_dir = os.path.join(settings.MEDIA_ROOT, 'video')
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    # Delete old files
+    delete_old_files(output_dir, max_hours=1)
+
+    # Generate unique filename for the output video
+    video_uuid = uuid.uuid1()
+    output_file_path = os.path.join(output_dir, f'{video_uuid}.mp4')
+
+    temp_video_path = None
+    temp_audio_path = None
+
+    try:
+        # Save uploaded video to temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(video_file.name)[1]) as temp_video:
+            for chunk in video_file.chunks():
+                temp_video.write(chunk)
+            temp_video_path = temp_video.name
+
+        # Save uploaded audio to temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio_file.name)[1]) as temp_audio:
+            for chunk in audio_file.chunks():
+                temp_audio.write(chunk)
+            temp_audio_path = temp_audio.name
+
+        # Prepare ffmpeg command
+        ffmpeg_path = '/usr/bin/ffmpeg'
+
+        # Get video duration first
+        probe_cmd = [
+            ffmpeg_path,
+            '-i', temp_video_path,
+            '-hide_banner'
+        ]
+
+        try:
+            probe_result = subprocess.run(
+                probe_cmd,
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            # Parse duration from ffmpeg output
+            video_duration = None
+            for line in probe_result.stderr.split('\n'):
+                if 'Duration:' in line:
+                    duration_str = line.split('Duration:')[1].split(',')[0].strip()
+                    # Convert duration to seconds
+                    time_parts = duration_str.split(':')
+                    video_duration = float(time_parts[0]) * 3600 + float(time_parts[1]) * 60 + float(time_parts[2])
+                    break
+
+        except subprocess.TimeoutExpired:
+            if temp_video_path and os.path.exists(temp_video_path):
+                os.unlink(temp_video_path)
+            if temp_audio_path and os.path.exists(temp_audio_path):
+                os.unlink(temp_audio_path)
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Video processing timeout.'}),
+                content_type='application/json',
+                status=422
+            )
+        except Exception as e:
+            if temp_video_path and os.path.exists(temp_video_path):
+                os.unlink(temp_video_path)
+            if temp_audio_path and os.path.exists(temp_audio_path):
+                os.unlink(temp_audio_path)
+            return HttpResponse(
+                json.dumps({'success': False, 'message': f'Error processing video: {str(e)}'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Build ffmpeg command to replace audio
+        # -i video_input -i audio_input -map 0:v -map 1:a -c:v copy -c:a aac -shortest output.mp4
+        # The -shortest flag ensures output duration matches the shortest input (video or audio)
+        cmd = [
+            ffmpeg_path,
+            '-i', temp_video_path,
+            '-i', temp_audio_path,
+            '-map', '0:v',  # Map video from first input
+            '-map', '1:a',  # Map audio from second input
+            '-c:v', 'copy',  # Copy video codec (no re-encoding)
+            '-c:a', 'aac',   # Encode audio to AAC
+            '-b:a', '192k',  # Audio bitrate
+            '-shortest',     # Use shortest duration (video or audio)
+            '-y',            # Overwrite output file
+            output_file_path
+        ]
+
+        # Execute ffmpeg command
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=180  # 3 minutes timeout for processing
+        )
+
+        # Clean up temporary files
+        if temp_video_path and os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
+        if temp_audio_path and os.path.exists(temp_audio_path):
+            os.unlink(temp_audio_path)
+
+        if result.returncode != 0:
+            logger.error(f'FFmpeg error: {result.stderr}')
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Failed to replace audio in video.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Check if output file was created
+        if not os.path.exists(output_file_path):
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Video processing failed.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Return the URL to the processed video
+        host_url = f"{request.scheme}://{request.get_host()}"
+        video_url = f"{host_url}/media/video/{video_uuid}.mp4"
+
+        output = {
+            'success': True,
+            'video_url': video_url
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except subprocess.TimeoutExpired:
+        if temp_video_path and os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
+        if temp_audio_path and os.path.exists(temp_audio_path):
+            os.unlink(temp_audio_path)
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Video processing timeout.'}),
+            content_type='application/json',
+            status=422
+        )
+    except Exception as e:
+        logger.error(f'Error replacing video audio: {str(e)}')
+        if temp_video_path and os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
+        if temp_audio_path and os.path.exists(temp_audio_path):
+            os.unlink(temp_audio_path)
         return HttpResponse(
             json.dumps({'success': False, 'message': f'Error: {str(e)}'}),
             content_type='application/json',
