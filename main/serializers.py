@@ -280,3 +280,15 @@ class VideoAudioReplacementResponseSerializer(serializers.Serializer):
 class VideoAudioReplacementErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+class VideoTrimRequestSerializer(serializers.Serializer):
+    second_start = serializers.FloatField(default=0, required=False)
+    second_end = serializers.FloatField(required=False)
+
+class VideoTrimResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    video_url = serializers.CharField()
+
+class VideoTrimErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
