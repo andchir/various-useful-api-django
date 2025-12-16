@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import subprocess
 import tempfile
 import urllib
 import uuid
@@ -40,7 +41,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     YandexDiskUploadResponseSerializer, GoogleTtsLanguagesSerializer, GoogleTransOutputSerializer, \
     GoogleTransRequestSerializer, GoogleTTSRequestSerializer, GoogleTTSResponseSerializer, EdgeTtsResponseSerializer, \
     EdgeTtsRequestSerializer, YandexGPTResponseSerializer, OpenAIEmbeddingsResponseSerializer, \
-    OpenAIEmbeddingsQuestionResponseSerializer
+    OpenAIEmbeddingsQuestionResponseSerializer, VideoFrameExtractionRequestSerializer, \
+    VideoFrameExtractionResponseSerializer, VideoFrameExtractionErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -1229,3 +1231,214 @@ def embeddings_store_question_action(request):
     output = {'success': True, 'answer': answer}
 
     return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+
+@extend_schema(
+    tags=['Video'],
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'video': {
+                    'type': 'string',
+                    'format': 'binary'
+                },
+                'second': {'type': 'number', 'default': 0},
+                'is_last': {'type': 'boolean', 'default': False}
+            },
+            'required': ['video']
+        }
+    },
+    responses={
+        (200, 'application/json'): VideoFrameExtractionResponseSerializer,
+        (422, 'application/json'): VideoFrameExtractionErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def extract_video_frame(request):
+    """
+    API endpoint for extracting a frame from a video file.
+    Accepts video file and extracts a frame at specified second or the last frame.
+    Returns JPG image with high quality.
+    """
+    video_file: TemporaryUploadedFile = request.data.get('video') if 'video' in request.data else None
+    second = float(request.data.get('second', 0))
+    is_last = request.data.get('is_last', 'false').lower() in ['true', '1', 'yes'] if isinstance(request.data.get('is_last'), str) else bool(request.data.get('is_last', False))
+
+    if video_file is None:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Video file is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Validate video file type
+    valid_video_types = ['video/mp4', 'video/webm', 'video/mpeg', 'video/quicktime', 'video/x-msvideo']
+    if video_file.content_type not in valid_video_types:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Unsupported video file type.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Create frames directory if it doesn't exist
+    frames_dir = os.path.join(settings.MEDIA_ROOT, 'frames')
+    if not os.path.isdir(frames_dir):
+        os.makedirs(frames_dir)
+
+    # Delete old files
+    delete_old_files(frames_dir, max_hours=1)
+
+    # Generate unique filename for the output frame
+    frame_uuid = uuid.uuid1()
+    output_file_path = os.path.join(frames_dir, f'{frame_uuid}.jpg')
+
+    try:
+        # Save uploaded video to temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(video_file.name)[1]) as temp_video:
+            for chunk in video_file.chunks():
+                temp_video.write(chunk)
+            temp_video_path = temp_video.name
+
+        # Prepare ffmpeg command
+        ffmpeg_path = '/usr/bin/ffmpeg'
+
+        if is_last:
+            # Extract the last frame
+            # First, get video duration
+            probe_cmd = [
+                ffmpeg_path,
+                '-i', temp_video_path,
+                '-hide_banner'
+            ]
+
+            try:
+                probe_result = subprocess.run(
+                    probe_cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=30
+                )
+
+                # Parse duration from ffmpeg output
+                duration_str = None
+                for line in probe_result.stderr.split('\n'):
+                    if 'Duration:' in line:
+                        duration_str = line.split('Duration:')[1].split(',')[0].strip()
+                        break
+
+                if duration_str:
+                    # Convert duration to seconds
+                    time_parts = duration_str.split(':')
+                    duration_seconds = float(time_parts[0]) * 3600 + float(time_parts[1]) * 60 + float(time_parts[2])
+                    # Seek to a moment slightly before the end to ensure we get a frame
+                    seek_time = max(0, duration_seconds - 0.1)
+                else:
+                    # If we can't determine duration, use reverse seeking
+                    seek_time = None
+            except subprocess.TimeoutExpired:
+                os.unlink(temp_video_path)
+                return HttpResponse(
+                    json.dumps({'success': False, 'message': 'Video processing timeout.'}),
+                    content_type='application/json',
+                    status=422
+                )
+            except Exception as e:
+                os.unlink(temp_video_path)
+                return HttpResponse(
+                    json.dumps({'success': False, 'message': f'Error processing video: {str(e)}'}),
+                    content_type='application/json',
+                    status=422
+                )
+
+            if seek_time is not None:
+                # Extract frame from calculated position
+                cmd = [
+                    ffmpeg_path,
+                    '-ss', str(seek_time),
+                    '-i', temp_video_path,
+                    '-vframes', '1',
+                    '-q:v', '2',  # High quality (2-5 is good, lower is better)
+                    '-y',
+                    output_file_path
+                ]
+            else:
+                # Alternative: use sseof to seek from end
+                cmd = [
+                    ffmpeg_path,
+                    '-sseof', '-0.1',
+                    '-i', temp_video_path,
+                    '-update', '1',
+                    '-q:v', '2',
+                    '-y',
+                    output_file_path
+                ]
+        else:
+            # Extract frame at specified second
+            cmd = [
+                ffmpeg_path,
+                '-ss', str(second),
+                '-i', temp_video_path,
+                '-vframes', '1',
+                '-q:v', '2',  # High quality JPG
+                '-y',
+                output_file_path
+            ]
+
+        # Execute ffmpeg command
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60
+        )
+
+        # Clean up temporary video file
+        os.unlink(temp_video_path)
+
+        if result.returncode != 0:
+            logger.error(f'FFmpeg error: {result.stderr}')
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Failed to extract frame from video.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Check if output file was created
+        if not os.path.exists(output_file_path):
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Frame extraction failed.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Return the URL to the extracted frame
+        host_url = f"{request.scheme}://{request.get_host()}"
+        frame_url = f"{host_url}/media/frames/{frame_uuid}.jpg"
+
+        output = {
+            'success': True,
+            'image_url': frame_url
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except subprocess.TimeoutExpired:
+        if os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Video processing timeout.'}),
+            content_type='application/json',
+            status=422
+        )
+    except Exception as e:
+        logger.error(f'Error extracting video frame: {str(e)}')
+        if os.path.exists(temp_video_path):
+            os.unlink(temp_video_path)
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Error: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )

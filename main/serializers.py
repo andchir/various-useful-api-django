@@ -257,3 +257,15 @@ class OpenAIEmbeddingsResponseSerializer(serializers.Serializer):
 class OpenAIEmbeddingsQuestionResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     answer = serializers.CharField()
+
+class VideoFrameExtractionRequestSerializer(serializers.Serializer):
+    second = serializers.FloatField(default=0, required=False)
+    is_last = serializers.BooleanField(default=False, required=False)
+
+class VideoFrameExtractionResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    image_url = serializers.CharField()
+
+class VideoFrameExtractionErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()

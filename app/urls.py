@@ -87,6 +87,9 @@ urlpatterns = [
     # OpenAI Embeddings
     path('api/v1/store_create', views.embeddings_create_store_action, name='embeddings_create_store_action'),
     path('api/v1/store_question', views.embeddings_store_question_action, name='embeddings_store_question_action'),
+
+    # Video
+    path('api/v1/extract_video_frame', views.extract_video_frame, name='extract_video_frame'),
 ]
 
 urlpatterns += [
