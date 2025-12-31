@@ -182,44 +182,9 @@ CACHES = {
     }
 }
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost",
-    "http://localhost:4200",
-    "http://localhost:8000",
-    "http://api2app.loc",
-    "http://api2app.org",
-    "https://api2app.org",
-    "http://api.api2app.ru",
-    "https://api.api2app.ru",
-    "http://api2.api2app.org",
-    "https://api2.api2app.org"
-]
-
-CORS_ORIGIN_WHITELIST = [
-    "http://localhost",
-    "http://localhost:4200",
-    "http://localhost:8000",
-    "http://api2app.loc",
-    "http://api2app.org",
-    "https://api2app.org",
-    "http://api.api2app.ru",
-    "https://api.api2app.ru",
-    "http://api2.api2app.org",
-    "https://api2.api2app.org"
-]
-
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost",
-    "http://localhost:4200",
-    "http://localhost:8000",
-    "http://api2app.loc",
-    "http://api2app.org",
-    "https://api2app.org",
-    "http://api.api2app.ru",
-    "https://api.api2app.ru",
-    "http://api2.api2app.org",
-    "https://api2.api2app.org"
-]
+CORS_ALLOWED_ORIGINS = env.list('CORS_ALLOWED_ORIGINS')
+CORS_ORIGIN_WHITELIST = CORS_ALLOWED_ORIGINS
+CSRF_TRUSTED_ORIGINS = CORS_ALLOWED_ORIGINS
 
 CORS_ALLOW_HEADERS = ['*']
 CORS_ALLOW_ALL_ORIGINS = os.environ.get('APP_ENV') == 'dev'
