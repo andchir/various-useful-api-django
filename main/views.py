@@ -273,6 +273,8 @@ def yt_dlp_action(request):
         return HttpResponse(json.dumps({'success': False, 'message': 'There are no required fields.'}),
                             content_type='application/json', status=422)
 
+    os.makedirs(os.path.join(settings.MEDIA_ROOT, 'video'), exist_ok=True)
+
     deleted = delete_old_files(os.path.join(settings.MEDIA_ROOT, 'video'), max_hours=1)
     # print('deleted:', deleted)
 
