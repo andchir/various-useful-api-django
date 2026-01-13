@@ -44,7 +44,7 @@ def website_screenshot(request):
     crop_height = request.data.get('crop_height', 0)
 
     # Validate required fields
-    if not url:
+    if not url or not url.startswith(('http://', 'https://')):
         return HttpResponse(
             json.dumps({'success': False, 'message': 'URL is required.'}),
             content_type='application/json',
