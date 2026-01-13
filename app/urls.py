@@ -25,6 +25,7 @@ from django.views.decorators.cache import cache_page
 
 from app import settings
 from main import views
+from main.views_screenshot import website_screenshot
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -93,6 +94,9 @@ urlpatterns = [
     path('api/v1/replace_video_audio', views.replace_video_audio, name='replace_video_audio'),
     path('api/v1/trim_video', views.trim_video, name='trim_video'),
     path('api/v1/concatenate_videos', views.concatenate_video_files, name='concatenate_videos'),
+
+    # Screenshot
+    path('api/v1/website_screenshot', website_screenshot, name='website_screenshot'),
 ]
 
 urlpatterns += [
