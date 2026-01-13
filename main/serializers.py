@@ -309,6 +309,10 @@ class WebsiteScreenshotRequestSerializer(serializers.Serializer):
     width = serializers.IntegerField(required=True, min_value=1, max_value=3840)
     height = serializers.IntegerField(required=True, min_value=1, max_value=2160)
     full = serializers.BooleanField(default=False, required=False)
+    crop_left = serializers.IntegerField(default=0, required=False, min_value=0)
+    crop_top = serializers.IntegerField(default=0, required=False, min_value=0)
+    crop_width = serializers.IntegerField(default=0, required=False, min_value=0)
+    crop_height = serializers.IntegerField(default=0, required=False, min_value=0)
 
 class WebsiteScreenshotResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()

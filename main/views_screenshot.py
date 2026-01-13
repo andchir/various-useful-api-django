@@ -38,6 +38,10 @@ def website_screenshot(request):
     width = request.data.get('width')
     height = request.data.get('height')
     full = request.data.get('full', False)
+    crop_left = request.data.get('crop_left', 0)
+    crop_top = request.data.get('crop_top', 0)
+    crop_width = request.data.get('crop_width', 0)
+    crop_height = request.data.get('crop_height', 0)
 
     # Validate required fields
     if not url:
@@ -57,9 +61,13 @@ def website_screenshot(request):
     try:
         width = int(width)
         height = int(height)
+        crop_left = int(crop_left)
+        crop_top = int(crop_top)
+        crop_width = int(crop_width)
+        crop_height = int(crop_height)
     except (ValueError, TypeError):
         return HttpResponse(
-            json.dumps({'success': False, 'message': 'Width and height must be integers.'}),
+            json.dumps({'success': False, 'message': 'Width, height, and crop parameters must be integers.'}),
             content_type='application/json',
             status=422
         )
@@ -84,6 +92,14 @@ def website_screenshot(request):
         full = full.lower() in ['true', '1', 'yes']
     else:
         full = bool(full)
+
+    # Validate crop parameters
+    if crop_left < 0 or crop_top < 0 or crop_width < 0 or crop_height < 0:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Crop parameters must be non-negative.'}),
+            content_type='application/json',
+            status=422
+        )
 
     # Create screenshots directory if it doesn't exist
     screenshots_dir = os.path.join(settings.MEDIA_ROOT, 'screenshots')
@@ -124,6 +140,31 @@ def website_screenshot(request):
                     path=screenshot_path,
                     full_page=full
                 )
+
+                # Apply cropping if crop_width and crop_height are greater than 0
+                if crop_width > 0 and crop_height > 0:
+                    from PIL import Image
+
+                    # Open the screenshot
+                    img = Image.open(screenshot_path)
+
+                    # Calculate crop box (left, upper, right, lower)
+                    right = crop_left + crop_width
+                    lower = crop_top + crop_height
+
+                    # Ensure crop box is within image boundaries
+                    img_width, img_height = img.size
+                    if crop_left >= img_width or crop_top >= img_height:
+                        raise ValueError(f'Crop coordinates ({crop_left}, {crop_top}) are outside image dimensions ({img_width}x{img_height})')
+
+                    if right > img_width or lower > img_height:
+                        raise ValueError(f'Crop box extends beyond image boundaries. Image size: {img_width}x{img_height}, crop box: ({crop_left}, {crop_top}, {right}, {lower})')
+
+                    # Crop the image
+                    cropped_img = img.crop((crop_left, crop_top, right, lower))
+
+                    # Save the cropped image
+                    cropped_img.save(screenshot_path)
 
             except PlaywrightTimeoutError:
                 browser.close()
