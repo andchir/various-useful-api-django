@@ -47,7 +47,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     VideoAudioReplacementRequestSerializer, VideoAudioReplacementResponseSerializer, \
     VideoAudioReplacementErrorSerializer, VideoTrimRequestSerializer, VideoTrimResponseSerializer, \
     VideoTrimErrorSerializer, VideoConcatenationRequestSerializer, VideoConcatenationResponseSerializer, \
-    VideoConcatenationErrorSerializer
+    VideoConcatenationErrorSerializer, WebsiteScreenshotRequestSerializer, WebsiteScreenshotResponseSerializer, \
+    WebsiteScreenshotErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube

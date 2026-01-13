@@ -303,3 +303,17 @@ class VideoConcatenationResponseSerializer(serializers.Serializer):
 class VideoConcatenationErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+class WebsiteScreenshotRequestSerializer(serializers.Serializer):
+    url = serializers.URLField(required=True)
+    width = serializers.IntegerField(required=True, min_value=1, max_value=3840)
+    height = serializers.IntegerField(required=True, min_value=1, max_value=2160)
+    full = serializers.BooleanField(default=False, required=False)
+
+class WebsiteScreenshotResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    screenshot_url = serializers.CharField()
+
+class WebsiteScreenshotErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
