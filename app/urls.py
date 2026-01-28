@@ -97,6 +97,9 @@ urlpatterns = [
 
     # Screenshot
     path('api/v1/website_screenshot', website_screenshot, name='website_screenshot'),
+
+    # Widget
+    path('api/v1/widget_embed_code', views.widget_embed_code_generator, name='widget_embed_code'),
 ]
 
 urlpatterns += [

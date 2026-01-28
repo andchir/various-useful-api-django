@@ -48,7 +48,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     VideoAudioReplacementErrorSerializer, VideoTrimRequestSerializer, VideoTrimResponseSerializer, \
     VideoTrimErrorSerializer, VideoConcatenationRequestSerializer, VideoConcatenationResponseSerializer, \
     VideoConcatenationErrorSerializer, WebsiteScreenshotRequestSerializer, WebsiteScreenshotResponseSerializer, \
-    WebsiteScreenshotErrorSerializer
+    WebsiteScreenshotErrorSerializer, WidgetEmbedCodeRequestSerializer, WidgetEmbedCodeResponseSerializer, \
+    WidgetEmbedCodeErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -1794,3 +1795,108 @@ def concatenate_video_files(request):
             content_type='application/json',
             status=422
         )
+
+
+@extend_schema(
+    tags=['Widget'],
+    request=WidgetEmbedCodeRequestSerializer,
+    responses={
+        (200, 'application/json'): WidgetEmbedCodeResponseSerializer,
+        (422, 'application/json'): WidgetEmbedCodeErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def widget_embed_code_generator(request):
+    """
+    API endpoint for generating widget embed code.
+    Creates JavaScript code for embedding a chat widget on a website.
+    """
+    app_embed_url = request.data.get('app_embed_url')
+    button_color = request.data.get('button_color', '#007bff')
+    hover_color = request.data.get('hover_color', '#0056b3')
+    position = request.data.get('position', 'bottom-right')
+    width = int(request.data.get('width', 350))
+    height = int(request.data.get('height', 465))
+    button_text = request.data.get('button_text', 'Открыть чат')
+
+    whatsapp_text = request.data.get('whatsapp_text', '')
+    whatsapp_href = request.data.get('whatsapp_href', '')
+    telegram_text = request.data.get('telegram_text', '')
+    telegram_href = request.data.get('telegram_href', '')
+    vk_text = request.data.get('vk_text', '')
+    vk_href = request.data.get('vk_href', '')
+    instagram_text = request.data.get('instagram_text', '')
+    instagram_href = request.data.get('instagram_href', '')
+    facebook_text = request.data.get('facebook_text', '')
+    facebook_href = request.data.get('facebook_href', '')
+
+    if not app_embed_url:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'The app_embed_url field is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    # Social media icons
+    icons = {
+        'whatsapp': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M3.50002 12C3.50002 7.30558 7.3056 3.5 12 3.5C16.6944 3.5 20.5 7.30558 20.5 12C20.5 16.6944 16.6944 20.5 12 20.5C10.3278 20.5 8.77127 20.0182 7.45798 19.1861C7.21357 19.0313 6.91408 18.9899 6.63684 19.0726L3.75769 19.9319L4.84173 17.3953C4.96986 17.0955 4.94379 16.7521 4.77187 16.4751C3.9657 15.176 3.50002 13.6439 3.50002 12ZM12 1.5C6.20103 1.5 1.50002 6.20101 1.50002 12C1.50002 13.8381 1.97316 15.5683 2.80465 17.0727L1.08047 21.107C0.928048 21.4637 0.99561 21.8763 1.25382 22.1657C1.51203 22.4552 1.91432 22.5692 2.28599 22.4582L6.78541 21.1155C8.32245 21.9965 10.1037 22.5 12 22.5C17.799 22.5 22.5 17.799 22.5 12C22.5 6.20101 17.799 1.5 12 1.5ZM14.2925 14.1824L12.9783 15.1081C12.3628 14.7575 11.6823 14.2681 10.9997 13.5855C10.2901 12.8759 9.76402 12.1433 9.37612 11.4713L10.2113 10.7624C10.5697 10.4582 10.6678 9.94533 10.447 9.53028L9.38284 7.53028C9.23954 7.26097 8.98116 7.0718 8.68115 7.01654C8.38113 6.96129 8.07231 7.046 7.84247 7.24659L7.52696 7.52195C6.76823 8.18414 6.3195 9.2723 6.69141 10.3741C7.07698 11.5163 7.89983 13.314 9.58552 14.9997C11.3991 16.8133 13.2413 17.5275 14.3186 17.8049C15.1866 18.0283 16.008 17.7288 16.5868 17.2572L17.1783 16.7752C17.4313 16.5691 17.5678 16.2524 17.544 15.9269C17.5201 15.6014 17.3389 15.308 17.0585 15.1409L15.3802 14.1409C15.0412 13.939 14.6152 13.9552 14.2925 14.1824Z" fill="#ffffff"></path> </g></svg>',
+        'telegram': '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M41.4193 7.30899C41.4193 7.30899 45.3046 5.79399 44.9808 9.47328C44.8729 10.9883 43.9016 16.2908 43.1461 22.0262L40.5559 39.0159C40.5559 39.0159 40.3401 41.5048 38.3974 41.9377C36.4547 42.3705 33.5408 40.4227 33.0011 39.9898C32.5694 39.6652 24.9068 34.7955 22.2086 32.4148C21.4531 31.7655 20.5897 30.4669 22.3165 28.9519L33.6487 18.1305C34.9438 16.8319 36.2389 13.8019 30.8426 17.4812L15.7331 27.7616C15.7331 27.7616 14.0063 28.8437 10.7686 27.8698L3.75342 25.7055C3.75342 25.7055 1.16321 24.0823 5.58815 22.459C16.3807 17.3729 29.6555 12.1786 41.4193 7.30899Z" fill="#ffffff"></path> </g></svg>',
+        'vk': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M3.4 3.4C2 4.81333 2 7.07333 2 11.6V12.4C2 16.92 2 19.18 3.4 20.6C4.81333 22 7.07333 22 11.6 22H12.4C16.92 22 19.18 22 20.6 20.6C22 19.1867 22 16.9267 22 12.4V11.6C22 7.08 22 4.82 20.6 3.4C19.1867 2 16.9267 2 12.4 2H11.6C7.08 2 4.82 2 3.4 3.4ZM5.37333 8.08667C5.48 13.2867 8.08 16.4067 12.64 16.4067H12.9067V13.4333C14.58 13.6 15.8467 14.8267 16.3533 16.4067H18.72C18.4773 15.5089 18.0469 14.6727 17.4574 13.9533C16.8679 13.234 16.1326 12.6478 15.3 12.2333C16.0461 11.779 16.6905 11.1756 17.1929 10.461C17.6953 9.7464 18.045 8.93585 18.22 8.08H16.0733C15.6067 9.73334 14.22 11.2333 12.9067 11.3733V8.08667H10.7533V13.8467C9.42 13.5133 7.74 11.9 7.66666 8.08667H5.37333Z" fill="#ffffff"></path> </g></svg>',
+        'instagram': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path fill-rule="evenodd" clip-rule="evenodd" d="M12 18C15.3137 18 18 15.3137 18 12C18 8.68629 15.3137 6 12 6C8.68629 6 6 8.68629 6 12C6 15.3137 8.68629 18 12 18ZM12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16Z" fill="#ffffff"></path> <path d="M18 5C17.4477 5 17 5.44772 17 6C17 6.55228 17.4477 7 18 7C18.5523 7 19 6.55228 19 6C19 5.44772 18.5523 5 18 5Z" fill="#ffffff"></path> <path fill-rule="evenodd" clip-rule="evenodd" d="M1.65396 4.27606C1 5.55953 1 7.23969 1 10.6V13.4C1 16.7603 1 18.4405 1.65396 19.7239C2.2292 20.8529 3.14708 21.7708 4.27606 22.346C5.55953 23 7.23969 23 10.6 23H13.4C16.7603 23 18.4405 23 19.7239 22.346C20.8529 21.7708 21.7708 20.8529 22.346 19.7239C23 18.4405 23 16.7603 23 13.4V10.6C23 7.23969 23 5.55953 22.346 4.27606C21.7708 3.14708 20.8529 2.2292 19.7239 1.65396C18.4405 1 16.7603 1 13.4 1H10.6C7.23969 1 5.55953 1 4.27606 1.65396C3.14708 2.2292 2.2292 3.14708 1.65396 4.27606ZM13.4 3H10.6C8.88684 3 7.72225 3.00156 6.82208 3.0751C5.94524 3.14674 5.49684 3.27659 5.18404 3.43597C4.43139 3.81947 3.81947 4.43139 3.43597 5.18404C3.27659 5.49684 3.14674 5.94524 3.0751 6.82208C3.00156 7.72225 3 8.88684 3 10.6V13.4C3 15.1132 3.00156 16.2777 3.0751 17.1779C3.14674 18.0548 3.27659 18.5032 3.43597 18.816C3.81947 19.5686 4.43139 20.1805 5.18404 20.564C5.49684 20.7234 5.94524 20.8533 6.82208 20.9249C7.72225 20.9984 8.88684 21 10.6 21H13.4C15.1132 21 16.2777 20.9984 17.1779 20.9249C18.0548 20.8533 18.5032 20.7234 18.816 20.564C19.5686 20.1805 20.1805 19.5686 20.564 18.816C20.7234 18.5032 20.8533 18.0548 20.9249 17.1779C20.9984 16.2777 21 15.1132 21 13.4V10.6C21 8.88684 20.9984 7.72225 20.9249 6.82208C20.8533 5.94524 20.7234 5.49684 20.564 5.18404C20.1805 4.43139 19.5686 3.81947 18.816 3.43597C18.5032 3.27659 18.0548 3.14674 17.1779 3.0751C16.2777 3.00156 15.1132 3 13.4 3Z" fill="#ffffff"></path> </g></svg>',
+        'facebook': '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"> <path d="M20 12.05C19.9813 10.5255 19.5273 9.03809 18.6915 7.76295C17.8557 6.48781 16.673 5.47804 15.2826 4.85257C13.8921 4.2271 12.3519 4.01198 10.8433 4.23253C9.33473 4.45309 7.92057 5.10013 6.7674 6.09748C5.61422 7.09482 4.77005 8.40092 4.3343 9.86195C3.89856 11.323 3.88938 12.8781 4.30786 14.3442C4.72634 15.8103 5.55504 17.1262 6.69637 18.1371C7.83769 19.148 9.24412 19.8117 10.75 20.05V14.38H8.75001V12.05H10.75V10.28C10.7037 9.86846 10.7483 9.45175 10.8807 9.05931C11.0131 8.66687 11.23 8.30827 11.5161 8.00882C11.8022 7.70936 12.1505 7.47635 12.5365 7.32624C12.9225 7.17612 13.3368 7.11255 13.75 7.14003C14.3498 7.14824 14.9482 7.20173 15.54 7.30003V9.30003H14.54C14.3676 9.27828 14.1924 9.29556 14.0276 9.35059C13.8627 9.40562 13.7123 9.49699 13.5875 9.61795C13.4627 9.73891 13.3667 9.88637 13.3066 10.0494C13.2464 10.2125 13.2237 10.387 13.24 10.56V12.07H15.46L15.1 14.4H13.25V20C15.1399 19.7011 16.8601 18.7347 18.0985 17.2761C19.3369 15.8175 20.0115 13.9634 20 12.05Z" fill="#ffffff"></path> </g></svg>'
+    }
+
+    # Social media button configurations
+    social_configs = {
+        'whatsapp': {'buttonColor': '#25d366', 'hoverColor': '#12a649'},
+        'telegram': {'buttonColor': '#0088cc', 'hoverColor': '#036ca1'},
+        'vk': {'buttonColor': '#0077FF', 'hoverColor': '#045abd'},
+        'instagram': {'buttonColor': '#d62976', 'hoverColor': '#a81b5a'},
+        'facebook': {'buttonColor': '#4267B2', 'hoverColor': '#2b4a8a'}
+    }
+
+    # Build hoverButtons array
+    hover_buttons = []
+    social_data = [
+        ('whatsapp', whatsapp_text, whatsapp_href),
+        ('telegram', telegram_text, telegram_href),
+        ('vk', vk_text, vk_href),
+        ('instagram', instagram_text, instagram_href),
+        ('facebook', facebook_text, facebook_href)
+    ]
+
+    for social, text, href in social_data:
+        if href:  # Only add if href is not empty
+            hover_buttons.append({
+                'buttonColor': social_configs[social]['buttonColor'],
+                'hoverColor': social_configs[social]['hoverColor'],
+                'tooltipText': text if text else '',
+                'href': href,
+                'icon': icons[social]
+            })
+
+    # Generate embed code
+    hover_buttons_json = json.dumps(hover_buttons, ensure_ascii=False, indent=16)
+
+    embed_code = f'''<script src="https://andchir.github.io/api2app-chat-widget/api2app-chat-widget.js"></script>
+<script>
+    const chatWidget = new Api2AppChatWidget(
+        '{app_embed_url}', {{
+            buttonColor: '{button_color}',
+            hoverColor: '{hover_color}',
+            position: '{position}',
+            width: {width},
+            height: {height},
+            tooltipText: '{button_text}',
+            hoverButtons: {hover_buttons_json}
+        }});
+</script>'''
+
+    output = {
+        'success': True,
+        'embed_code': embed_code
+    }
+
+    return HttpResponse(json.dumps(output, ensure_ascii=False), content_type='application/json; charset=utf-8', status=200)
