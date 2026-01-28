@@ -321,3 +321,35 @@ class WebsiteScreenshotResponseSerializer(serializers.Serializer):
 class WebsiteScreenshotErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+class WidgetEmbedCodeRequestSerializer(serializers.Serializer):
+    app_embed_url = serializers.URLField(required=True)
+    button_color = serializers.CharField(required=False, default='#007bff')
+    hover_color = serializers.CharField(required=False, default='#0056b3')
+    position = serializers.ChoiceField(
+        choices=['bottom-right', 'bottom-left', 'top-right', 'top-left'],
+        default='bottom-right',
+        required=False
+    )
+    width = serializers.IntegerField(default=350, required=False, min_value=1)
+    height = serializers.IntegerField(default=465, required=False, min_value=1)
+    button_text = serializers.CharField(required=False, default='Открыть чат')
+
+    whatsapp_text = serializers.CharField(required=False, allow_blank=True, default='')
+    whatsapp_href = serializers.URLField(required=False, allow_blank=True, default='')
+    telegram_text = serializers.CharField(required=False, allow_blank=True, default='')
+    telegram_href = serializers.URLField(required=False, allow_blank=True, default='')
+    vk_text = serializers.CharField(required=False, allow_blank=True, default='')
+    vk_href = serializers.URLField(required=False, allow_blank=True, default='')
+    instagram_text = serializers.CharField(required=False, allow_blank=True, default='')
+    instagram_href = serializers.URLField(required=False, allow_blank=True, default='')
+    facebook_text = serializers.CharField(required=False, allow_blank=True, default='')
+    facebook_href = serializers.URLField(required=False, allow_blank=True, default='')
+
+class WidgetEmbedCodeResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    embed_code = serializers.CharField()
+
+class WidgetEmbedCodeErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
