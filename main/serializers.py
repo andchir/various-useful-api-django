@@ -353,3 +353,118 @@ class WidgetEmbedCodeResponseSerializer(serializers.Serializer):
 class WidgetEmbedCodeErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+
+# QR Code Generator Serializers
+class QRCodeGeneratorRequestSerializer(serializers.Serializer):
+    text = serializers.CharField(help_text="Text or URL to encode in QR code")
+    size = serializers.IntegerField(default=10, required=False, help_text="Box size (1-40)")
+    border = serializers.IntegerField(default=4, required=False, help_text="Border size in boxes")
+    error_correction = serializers.ChoiceField(
+        choices=['L', 'M', 'Q', 'H'],
+        default='M',
+        required=False,
+        help_text="Error correction level: L(7%), M(15%), Q(25%), H(30%)"
+    )
+    fill_color = serializers.CharField(default='black', required=False, help_text="Fill color")
+    back_color = serializers.CharField(default='white', required=False, help_text="Background color")
+
+
+class QRCodeGeneratorResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    qr_code_url = serializers.CharField()
+
+
+class QRCodeGeneratorErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# OCR Text Recognition Serializers
+class OCRTextRecognitionRequestSerializer(serializers.Serializer):
+    image = serializers.ImageField(help_text="Image file to extract text from")
+    language = serializers.CharField(
+        default='eng',
+        required=False,
+        help_text="Language code (eng, rus, etc.)"
+    )
+
+
+class OCRTextRecognitionResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    text = serializers.CharField()
+    confidence = serializers.FloatField()
+
+
+class OCRTextRecognitionErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# Currency Converter Serializers
+class CurrencyConverterRequestSerializer(serializers.Serializer):
+    amount = serializers.FloatField(help_text="Amount to convert")
+    from_currency = serializers.CharField(help_text="Source currency code (USD, EUR, RUB, etc.)")
+    to_currency = serializers.CharField(help_text="Target currency code (USD, EUR, RUB, etc.)")
+
+
+class CurrencyConverterResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    amount = serializers.FloatField()
+    from_currency = serializers.CharField()
+    to_currency = serializers.CharField()
+    converted_amount = serializers.FloatField()
+    rate = serializers.FloatField()
+    date = serializers.CharField()
+
+
+class CurrencyConverterErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# Weather API Serializers
+class WeatherAPIRequestSerializer(serializers.Serializer):
+    location = serializers.CharField(help_text="City name or coordinates (lat,lon)")
+
+
+class WeatherAPIResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    location = serializers.CharField()
+    temperature = serializers.FloatField()
+    feels_like = serializers.FloatField()
+    humidity = serializers.IntegerField()
+    pressure = serializers.IntegerField()
+    wind_speed = serializers.FloatField()
+    description = serializers.CharField()
+    icon = serializers.CharField()
+
+
+class WeatherAPIErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# Plagiarism Checker Serializers
+class PlagiarismCheckerRequestSerializer(serializers.Serializer):
+    text1 = serializers.CharField(help_text="First text to compare")
+    text2 = serializers.CharField(help_text="Second text to compare")
+    algorithm = serializers.ChoiceField(
+        choices=['difflib', 'tfidf'],
+        default='difflib',
+        required=False,
+        help_text="Comparison algorithm"
+    )
+
+
+class PlagiarismCheckerResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    similarity_percentage = serializers.FloatField()
+    is_plagiarized = serializers.BooleanField()
+    algorithm = serializers.CharField()
+    details = serializers.DictField()
+
+
+class PlagiarismCheckerErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()

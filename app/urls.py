@@ -100,6 +100,21 @@ urlpatterns = [
 
     # Widget
     path('api/v1/widget_embed_code', views.widget_embed_code_generator, name='widget_embed_code'),
+
+    # QR Code Generator
+    path('api/v1/qr_code_generator', views.qr_code_generator, name='qr_code_generator'),
+
+    # OCR Text Recognition
+    path('api/v1/ocr_text_recognition', views.ocr_text_recognition, name='ocr_text_recognition'),
+
+    # Currency Converter
+    path('api/v1/currency_converter', views.currency_converter, name='currency_converter'),
+
+    # Weather API
+    path('api/v1/weather', views.weather_api, name='weather_api'),
+
+    # Plagiarism Checker
+    path('api/v1/plagiarism_checker', views.plagiarism_checker, name='plagiarism_checker'),
 ]
 
 urlpatterns += [

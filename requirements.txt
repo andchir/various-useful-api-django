@@ -42,3 +42,10 @@ langchain-community==0.3.27
 langchain-huggingface==0.3.0
 faiss-cpu==1.11.0
 playwright==1.57.0
+
+# New APIs dependencies
+qrcode[pil]==8.0
+pytesseract==0.3.13
+forex-python==1.8
+python-weather==2.0.7
+scikit-learn==1.6.0
