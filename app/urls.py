@@ -80,7 +80,6 @@ urlpatterns = [
 
     # Other
     path('api/v1/password_generate', views.password_generate, name='password_generate'),
-    path('api/v1/download_file', views.download_file, name='download_file'),
 
     # YandexGPT
     path('api/v1/yandexgpt_assistant', views.yandexgpt_assistant_action, name='yandexgpt_assistant'),
