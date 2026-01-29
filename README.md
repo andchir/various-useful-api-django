@@ -63,6 +63,8 @@ Various useful APIs for api2app.ru.
 ### Widget
 - Generate widget embed code for chat integration
 
+## Installation and management
+
 Create superuser:
 ~~~
 python manage.py createsuperuser
