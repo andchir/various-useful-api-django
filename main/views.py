@@ -10,6 +10,13 @@ import googletrans
 import gtts
 from factcheckexplorer.factcheckexplorer import FactCheckLib
 import yt_dlp
+import qrcode
+from io import BytesIO
+import base64
+from datetime import datetime
+import difflib
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 from django.http import HttpResponse, FileResponse
 from django.contrib.auth.models import User, Group
 from django.utils.decorators import method_decorator
@@ -49,7 +56,12 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     VideoTrimErrorSerializer, VideoConcatenationRequestSerializer, VideoConcatenationResponseSerializer, \
     VideoConcatenationErrorSerializer, WebsiteScreenshotRequestSerializer, WebsiteScreenshotResponseSerializer, \
     WebsiteScreenshotErrorSerializer, WidgetEmbedCodeRequestSerializer, WidgetEmbedCodeResponseSerializer, \
-    WidgetEmbedCodeErrorSerializer
+    WidgetEmbedCodeErrorSerializer, QRCodeGeneratorRequestSerializer, QRCodeGeneratorResponseSerializer, \
+    QRCodeGeneratorErrorSerializer, OCRTextRecognitionRequestSerializer, OCRTextRecognitionResponseSerializer, \
+    OCRTextRecognitionErrorSerializer, CurrencyConverterRequestSerializer, CurrencyConverterResponseSerializer, \
+    CurrencyConverterErrorSerializer, WeatherAPIRequestSerializer, WeatherAPIResponseSerializer, \
+    WeatherAPIErrorSerializer, PlagiarismCheckerRequestSerializer, PlagiarismCheckerResponseSerializer, \
+    PlagiarismCheckerErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -1841,3 +1853,372 @@ def widget_embed_code_generator(request):
     }
 
     return HttpResponse(json.dumps(output, ensure_ascii=False), content_type='application/json; charset=utf-8', status=200)
+
+
+@extend_schema(
+    tags=['QR Code Generator'],
+    request=QRCodeGeneratorRequestSerializer,
+    responses={
+        (200, 'application/json'): QRCodeGeneratorResponseSerializer,
+        (422, 'application/json'): QRCodeGeneratorErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def qr_code_generator(request):
+    """
+    API endpoint for generating QR codes from text or URLs.
+    """
+    text = request.data.get('text')
+    size = int(request.data.get('size', 10))
+    border = int(request.data.get('border', 4))
+    error_correction_map = {
+        'L': qrcode.constants.ERROR_CORRECT_L,
+        'M': qrcode.constants.ERROR_CORRECT_M,
+        'Q': qrcode.constants.ERROR_CORRECT_Q,
+        'H': qrcode.constants.ERROR_CORRECT_H
+    }
+    error_correction = error_correction_map.get(request.data.get('error_correction', 'M'))
+    fill_color = request.data.get('fill_color', 'black')
+    back_color = request.data.get('back_color', 'white')
+
+    if not text:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Text field is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Validate size and border
+        if size < 1 or size > 40:
+            size = 10
+        if border < 0 or border > 10:
+            border = 4
+
+        # Create QR code
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=error_correction,
+            box_size=size,
+            border=border,
+        )
+        qr.add_data(text)
+        qr.make(fit=True)
+
+        img = qr.make_image(fill_color=fill_color, back_color=back_color)
+
+        # Save to media directory
+        os.makedirs(os.path.join(settings.MEDIA_ROOT, 'qrcodes'), exist_ok=True)
+        delete_old_files(os.path.join(settings.MEDIA_ROOT, 'qrcodes'), max_hours=1)
+
+        filename = f"qr-{uuid.uuid4()}.png"
+        filepath = os.path.join(settings.MEDIA_ROOT, 'qrcodes', filename)
+        img.save(filepath)
+
+        host_url = "{}://{}".format(request.scheme, request.get_host())
+        qr_code_url = f"{host_url}/media/qrcodes/{filename}"
+
+        output = {
+            'success': True,
+            'qr_code_url': qr_code_url
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"QR Code generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'QR code generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['OCR Text Recognition'],
+    request=OCRTextRecognitionRequestSerializer,
+    responses={
+        (200, 'application/json'): OCRTextRecognitionResponseSerializer,
+        (422, 'application/json'): OCRTextRecognitionErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def ocr_text_recognition(request):
+    """
+    API endpoint for extracting text from images using OCR (pytesseract).
+    """
+    try:
+        import pytesseract
+        from PIL import Image
+    except ImportError:
+        return HttpResponse(
+            json.dumps({
+                'success': False,
+                'message': 'OCR libraries not installed. Please install pytesseract and Tesseract-OCR.'
+            }),
+            content_type='application/json',
+            status=422
+        )
+
+    image_file = request.FILES.get('image')
+    language = request.data.get('language', 'eng')
+
+    if not image_file:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Image file is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Open image
+        image = Image.open(image_file)
+
+        # Perform OCR
+        custom_config = r'--oem 3 --psm 6'
+        text = pytesseract.image_to_string(image, lang=language, config=custom_config)
+
+        # Get confidence data
+        try:
+            data = pytesseract.image_to_data(image, lang=language, output_type=pytesseract.Output.DICT)
+            confidences = [float(conf) for conf in data['conf'] if conf != '-1']
+            avg_confidence = sum(confidences) / len(confidences) if confidences else 0.0
+        except:
+            avg_confidence = 0.0
+
+        output = {
+            'success': True,
+            'text': text.strip(),
+            'confidence': round(avg_confidence, 2)
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"OCR error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'OCR processing failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['Currency Converter'],
+    request=CurrencyConverterRequestSerializer,
+    responses={
+        (200, 'application/json'): CurrencyConverterResponseSerializer,
+        (422, 'application/json'): CurrencyConverterErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def currency_converter(request):
+    """
+    API endpoint for converting currencies using forex-python library.
+    """
+    try:
+        from forex_python.converter import CurrencyRates
+    except ImportError:
+        return HttpResponse(
+            json.dumps({
+                'success': False,
+                'message': 'Currency converter library not installed. Please install forex-python.'
+            }),
+            content_type='application/json',
+            status=422
+        )
+
+    amount = request.data.get('amount')
+    from_currency = request.data.get('from_currency', '').upper()
+    to_currency = request.data.get('to_currency', '').upper()
+
+    if not all([amount, from_currency, to_currency]):
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Amount, from_currency, and to_currency are required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        amount = float(amount)
+        c = CurrencyRates()
+
+        # Get exchange rate
+        rate = c.get_rate(from_currency, to_currency)
+        converted_amount = amount * rate
+
+        output = {
+            'success': True,
+            'amount': amount,
+            'from_currency': from_currency,
+            'to_currency': to_currency,
+            'converted_amount': round(converted_amount, 2),
+            'rate': round(rate, 6),
+            'date': datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except ValueError as e:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Invalid amount value.'}),
+            content_type='application/json',
+            status=422
+        )
+    except Exception as e:
+        logger.error(f"Currency conversion error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Currency conversion failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['Weather API'],
+    request=WeatherAPIRequestSerializer,
+    responses={
+        (200, 'application/json'): WeatherAPIResponseSerializer,
+        (422, 'application/json'): WeatherAPIErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def weather_api(request):
+    """
+    API endpoint for getting weather information using python-weather library.
+    """
+    try:
+        import python_weather
+    except ImportError:
+        return HttpResponse(
+            json.dumps({
+                'success': False,
+                'message': 'Weather library not installed. Please install python-weather.'
+            }),
+            content_type='application/json',
+            status=422
+        )
+
+    location = request.data.get('location')
+
+    if not location:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Location field is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        async def get_weather():
+            async with python_weather.Client(unit=python_weather.METRIC) as client:
+                weather = await client.get(location)
+                return weather
+
+        # Run async function
+        weather = asyncio.run(get_weather())
+
+        output = {
+            'success': True,
+            'location': location,
+            'temperature': weather.temperature,
+            'feels_like': weather.feels_like if hasattr(weather, 'feels_like') else weather.temperature,
+            'humidity': weather.humidity if hasattr(weather, 'humidity') else 0,
+            'pressure': weather.pressure if hasattr(weather, 'pressure') else 0,
+            'wind_speed': weather.wind_speed if hasattr(weather, 'wind_speed') else 0.0,
+            'description': weather.description if hasattr(weather, 'description') else str(weather.kind),
+            'icon': str(weather.kind) if hasattr(weather, 'kind') else ''
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"Weather API error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Weather data retrieval failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['Plagiarism Checker'],
+    request=PlagiarismCheckerRequestSerializer,
+    responses={
+        (200, 'application/json'): PlagiarismCheckerResponseSerializer,
+        (422, 'application/json'): PlagiarismCheckerErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def plagiarism_checker(request):
+    """
+    API endpoint for checking text similarity/plagiarism using difflib or TF-IDF.
+    """
+    text1 = request.data.get('text1', '')
+    text2 = request.data.get('text2', '')
+    algorithm = request.data.get('algorithm', 'difflib')
+
+    if not text1 or not text2:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Both text1 and text2 are required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        similarity_percentage = 0.0
+        details = {}
+
+        if algorithm == 'difflib':
+            # Use difflib SequenceMatcher
+            matcher = difflib.SequenceMatcher(None, text1, text2)
+            similarity_percentage = matcher.ratio() * 100
+
+            # Get matching blocks for details
+            matching_blocks = matcher.get_matching_blocks()
+            details = {
+                'matching_blocks_count': len(matching_blocks) - 1,  # Last one is dummy
+                'longest_match_size': max([block.size for block in matching_blocks[:-1]], default=0)
+            }
+
+        elif algorithm == 'tfidf':
+            # Use TF-IDF vectorization
+            vectorizer = TfidfVectorizer()
+            tfidf_matrix = vectorizer.fit_transform([text1, text2])
+            similarity = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix[1:2])[0][0]
+            similarity_percentage = similarity * 100
+
+            details = {
+                'cosine_similarity': round(similarity, 4),
+                'vocabulary_size': len(vectorizer.vocabulary_)
+            }
+
+        # Determine if plagiarized (threshold: 70%)
+        is_plagiarized = similarity_percentage >= 70.0
+
+        output = {
+            'success': True,
+            'similarity_percentage': round(similarity_percentage, 2),
+            'is_plagiarized': is_plagiarized,
+            'algorithm': algorithm,
+            'details': details
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"Plagiarism check error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Plagiarism check failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
