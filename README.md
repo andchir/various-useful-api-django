@@ -36,7 +36,6 @@ Various useful APIs for api2app.ru.
 - Generate speech from text (edge-tts)
 
 ### Other
-- Download file by URL
 - Password generator
 
 ### FactCheckExplorer
