@@ -5,17 +5,71 @@ Various useful APIs for api2app.ru.
 ![screenshot #1](https://github.com/andchir/price-monitoring-django/blob/main/screenshots/001.png?raw=true "Screenshot #1")
 ![screenshot #2](https://github.com/andchir/price-monitoring-django/blob/main/screenshots/002.png?raw=true "Screenshot #2")
 
-- API for monitoring changes in prices for products.
-- Logging - testing webhooks.
-- Downloading videos from YouTube (pytube and yt-dlp).
-- Unlimited Microsoft Text-to-Speech (edge-tts)
+## API Endpoints
+
+### Users
+- Users management (CRUD operations)
+- Current user information
+
+### Users groups
+- User groups management (CRUD operations)
+
+### Price monitoring
+- Products monitoring (CRUD operations)
+- List product names
+- List cities
+- List shop names
+
+### Logging
+- Log owners management (CRUD operations)
+- Log items management (CRUD operations)
+- Create log record
+
+### YouTube
+- Get video information (yt-dlp)
+- Get video information (pytube)
+- Download video from YouTube
+
+### Google Translate & TTS
+- List Google Translate languages
+- Translate text
+- List Google TTS languages
+- Generate speech from text (gTTS)
+
+### Microsoft Edge TTS
+- List all available voices
+- List voices by language
+- List available languages
+- Generate speech from text (edge-tts)
+
+### Other
+- Download file by URL
 - Password generator
-- FactCheckExplorer (https://github.com/GONZOsint/factcheckexplorer)
-- Unlimited Google Translate (googletrans)
-- Unlimited Google Text-to-Speech (gTTS)
-- Use YandexCloud Assistant (https://yandex.cloud/ru/docs/foundation-models/operations/assistant/create-with-searchindex)
-- Coggle node API.
-- OpenAI Embeddings API.
+
+### FactCheckExplorer
+- Fact-checking explorer (https://github.com/GONZOsint/factcheckexplorer)
+
+### YandexDisk
+- Upload and share files on YandexDisk
+
+### YandexGPT
+- YandexCloud Assistant integration (https://yandex.cloud/ru/docs/foundation-models/operations/assistant/create-with-searchindex)
+
+### Coggle
+- Get Coggle diagram node data
+
+### OpenAI Embeddings
+- Create and store embeddings
+- Query stored embeddings
+
+### Video Processing
+- Extract frame from video
+- Replace or add audio track to video
+- Trim video segment
+- Concatenate multiple videos
+
+### Widget
+- Generate widget embed code for chat integration
 
 Create superuser:
 ~~~
