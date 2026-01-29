@@ -7,13 +7,6 @@ Various useful APIs for api2app.ru.
 
 ## API Endpoints
 
-### Users
-- Users management (CRUD operations)
-- Current user information
-
-### Users groups
-- User groups management (CRUD operations)
-
 ### Price monitoring
 - Products monitoring (CRUD operations)
 - List product names
