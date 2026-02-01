@@ -48,14 +48,12 @@ Various useful APIs for api2app.ru.
 | Convert currencies | Currency Converter | `/api/v1/currency_converter` |
 | Get weather information | Weather API | `/api/v1/weather` |
 | Check text similarity/plagiarism | Plagiarism Checker | `/api/v1/plagiarism_checker` |
-
-### CSS Tools
-- SVG to CSS background-image URL converter
-- CSS gradient generator (linear, radial, conic)
-- CSS box-shadow generator
-- CSS transform generator (rotate, scale, translate, skew)
-- CSS animation/keyframes generator
-- CSS filter effects generator (blur, brightness, contrast, etc.)
+| Convert SVG to CSS background-image data URL | CSS Tools | `/api/v1/svg_to_css_background` |
+| Generate CSS gradient code (linear, radial, conic) | CSS Tools | `/api/v1/css_gradient_generator` |
+| Generate CSS box-shadow code | CSS Tools | `/api/v1/css_box_shadow_generator` |
+| Generate CSS transform properties (rotate, scale, translate, skew) | CSS Tools | `/api/v1/css_transform_generator` |
+| Generate CSS animation and keyframes code | CSS Tools | `/api/v1/css_animation_generator` |
+| Generate CSS filter effects (blur, brightness, contrast, etc.) | CSS Tools | `/api/v1/css_filter_generator` |
 
 ## Installation and management
 
