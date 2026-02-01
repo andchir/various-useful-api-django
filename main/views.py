@@ -68,7 +68,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     CssBoxShadowErrorSerializer, CssTransformRequestSerializer, CssTransformResponseSerializer, \
     CssTransformErrorSerializer, CssAnimationRequestSerializer, CssAnimationResponseSerializer, \
     CssAnimationErrorSerializer, CssFilterRequestSerializer, CssFilterResponseSerializer, \
-    CssFilterErrorSerializer
+    CssFilterErrorSerializer, CssTriangleRequestSerializer, CssTriangleResponseSerializer, \
+    CssTriangleErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -2586,6 +2587,96 @@ def css_filter_generator(request):
 
     except Exception as e:
         logger.error(f"CSS filter generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssTriangleRequestSerializer,
+    responses={
+        (200, 'application/json'): CssTriangleResponseSerializer,
+        (422, 'application/json'): CssTriangleErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_triangle_generator(request):
+    """
+    API endpoint for generating CSS triangle code using borders.
+    """
+    direction = request.data.get('direction', 'top')
+    color = request.data.get('color', '#B70B0B')
+    size = request.data.get('size', 30)
+
+    try:
+        # Validate direction
+        if direction not in ['top', 'right', 'bottom', 'left']:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Invalid direction. Must be one of: top, right, bottom, left'}),
+                content_type='application/json',
+                status=422
+            )
+
+        # Calculate dimensions for equilateral triangle
+        # For perpendicular sides (transparent borders)
+        half_size = int(size / 2)
+        # For base (colored border) - using sqrt(3)/2 ≈ 0.866
+        base_size = round(size * 0.866)
+
+        # Build CSS code based on direction
+        css_lines = [
+            '.triangle {',
+            '  width: 0;',
+            '  height: 0;',
+            '  border-style: solid;'
+        ]
+
+        if direction == 'top':
+            css_lines.extend([
+                f'  border-right: {half_size}px solid transparent;',
+                f'  border-left: {half_size}px solid transparent;',
+                f'  border-bottom: {base_size}px solid {color.lower()};',
+                '  border-top: 0;'
+            ])
+        elif direction == 'right':
+            css_lines.extend([
+                f'  border-top: {half_size}px solid transparent;',
+                f'  border-bottom: {half_size}px solid transparent;',
+                f'  border-left: {base_size}px solid {color.lower()};',
+                '  border-right: 0;'
+            ])
+        elif direction == 'bottom':
+            css_lines.extend([
+                f'  border-right: {half_size}px solid transparent;',
+                f'  border-left: {half_size}px solid transparent;',
+                f'  border-top: {base_size}px solid {color.lower()};',
+                '  border-bottom: 0;'
+            ])
+        elif direction == 'left':
+            css_lines.extend([
+                f'  border-top: {half_size}px solid transparent;',
+                f'  border-bottom: {half_size}px solid transparent;',
+                f'  border-right: {base_size}px solid {color.lower()};',
+                '  border-left: 0;'
+            ])
+
+        css_lines.append('}')
+        css_code = '\n'.join(css_lines)
+
+        output = {
+            'success': True,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS triangle generation error: {str(e)}")
         return HttpResponse(
             json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
             content_type='application/json',

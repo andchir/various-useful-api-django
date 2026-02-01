@@ -54,6 +54,7 @@ Various useful APIs for api2app.ru.
 | Generate CSS transform properties (rotate, scale, translate, skew) | CSS Tools | `/api/v1/css_transform_generator` |
 | Generate CSS animation and keyframes code | CSS Tools | `/api/v1/css_animation_generator` |
 | Generate CSS filter effects (blur, brightness, contrast, etc.) | CSS Tools | `/api/v1/css_filter_generator` |
+| Generate CSS triangle using borders | CSS Tools | `/api/v1/css_triangle_generator` |
 
 ## Installation and management
 
