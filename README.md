@@ -63,6 +63,14 @@ Various useful APIs for api2app.ru.
 ### Widget
 - Generate widget embed code for chat integration
 
+### CSS Tools
+- SVG to CSS background-image URL converter
+- CSS gradient generator (linear, radial, conic)
+- CSS box-shadow generator
+- CSS transform generator (rotate, scale, translate, skew)
+- CSS animation/keyframes generator
+- CSS filter effects generator (blur, brightness, contrast, etc.)
+
 ## Installation and management
 
 Create superuser:

@@ -17,6 +17,7 @@ from datetime import datetime
 import difflib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import re
 from django.http import HttpResponse, FileResponse
 from django.contrib.auth.models import User, Group
 from django.utils.decorators import method_decorator
@@ -61,7 +62,13 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     OCRTextRecognitionErrorSerializer, CurrencyConverterRequestSerializer, CurrencyConverterResponseSerializer, \
     CurrencyConverterErrorSerializer, WeatherAPIRequestSerializer, WeatherAPIResponseSerializer, \
     WeatherAPIErrorSerializer, PlagiarismCheckerRequestSerializer, PlagiarismCheckerResponseSerializer, \
-    PlagiarismCheckerErrorSerializer
+    PlagiarismCheckerErrorSerializer, SvgToCssBackgroundRequestSerializer, SvgToCssBackgroundResponseSerializer, \
+    SvgToCssBackgroundErrorSerializer, CssGradientRequestSerializer, CssGradientResponseSerializer, \
+    CssGradientErrorSerializer, CssBoxShadowRequestSerializer, CssBoxShadowResponseSerializer, \
+    CssBoxShadowErrorSerializer, CssTransformRequestSerializer, CssTransformResponseSerializer, \
+    CssTransformErrorSerializer, CssAnimationRequestSerializer, CssAnimationResponseSerializer, \
+    CssAnimationErrorSerializer, CssFilterRequestSerializer, CssFilterResponseSerializer, \
+    CssFilterErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -2229,6 +2236,358 @@ def plagiarism_checker(request):
         logger.error(f"Plagiarism check error: {str(e)}")
         return HttpResponse(
             json.dumps({'success': False, 'message': f'Plagiarism check failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+# CSS APIs
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=SvgToCssBackgroundRequestSerializer,
+    responses={
+        (200, 'application/json'): SvgToCssBackgroundResponseSerializer,
+        (422, 'application/json'): SvgToCssBackgroundErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def svg_to_css_background(request):
+    """
+    API endpoint for converting SVG code to CSS background-image URL.
+    """
+    svg_code = request.data.get('svg_code', '')
+
+    if not svg_code:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'SVG code is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Encode SVG for use in CSS
+        # Replace problematic characters
+        svg_encoded = svg_code.replace('\n', '').replace('\r', '').replace('\t', ' ')
+        svg_encoded = svg_encoded.replace('"', "'")
+        svg_encoded = svg_encoded.replace('%', '%25')
+        svg_encoded = svg_encoded.replace('#', '%23')
+        svg_encoded = svg_encoded.replace('<', '%3C')
+        svg_encoded = svg_encoded.replace('>', '%3E')
+        svg_encoded = svg_encoded.replace('&', '%26')
+
+        css_url = f"data:image/svg+xml,{svg_encoded}"
+        css_code = f"background-image: url(\"{css_url}\");"
+
+        output = {
+            'success': True,
+            'css_url': css_url,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"SVG to CSS background conversion error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Conversion failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssGradientRequestSerializer,
+    responses={
+        (200, 'application/json'): CssGradientResponseSerializer,
+        (422, 'application/json'): CssGradientErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_gradient_generator(request):
+    """
+    API endpoint for generating CSS gradient code.
+    """
+    gradient_type = request.data.get('type', 'linear')
+    colors = request.data.get('colors', [])
+    angle = request.data.get('angle', 180)
+    shape = request.data.get('shape', 'ellipse')
+    position = request.data.get('position', 'center')
+
+    if not colors or len(colors) < 2:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'At least 2 colors are required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Build color stops
+        color_stops = []
+        for i, color_stop in enumerate(colors):
+            color = color_stop.get('color', '')
+            pos = color_stop.get('position', None)
+
+            if pos is not None:
+                color_stops.append(f"{color} {pos}%")
+            else:
+                color_stops.append(color)
+
+        colors_str = ', '.join(color_stops)
+
+        # Generate CSS based on type
+        if gradient_type == 'linear':
+            css_code = f"background: linear-gradient({angle}deg, {colors_str});"
+        elif gradient_type == 'radial':
+            css_code = f"background: radial-gradient({shape} at {position}, {colors_str});"
+        elif gradient_type == 'conic':
+            css_code = f"background: conic-gradient(from {angle}deg at {position}, {colors_str});"
+        else:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Invalid gradient type.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        output = {
+            'success': True,
+            'css_code': css_code,
+            'type': gradient_type
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS gradient generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssBoxShadowRequestSerializer,
+    responses={
+        (200, 'application/json'): CssBoxShadowResponseSerializer,
+        (422, 'application/json'): CssBoxShadowErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_box_shadow_generator(request):
+    """
+    API endpoint for generating CSS box-shadow code.
+    """
+    h_offset = request.data.get('h_offset', 0)
+    v_offset = request.data.get('v_offset', 0)
+    blur = request.data.get('blur', 10)
+    spread = request.data.get('spread', 0)
+    color = request.data.get('color', 'rgba(0, 0, 0, 0.5)')
+    inset = request.data.get('inset', False)
+
+    try:
+        inset_str = 'inset ' if inset else ''
+        css_code = f"box-shadow: {inset_str}{h_offset}px {v_offset}px {blur}px {spread}px {color};"
+
+        output = {
+            'success': True,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS box-shadow generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssTransformRequestSerializer,
+    responses={
+        (200, 'application/json'): CssTransformResponseSerializer,
+        (422, 'application/json'): CssTransformErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_transform_generator(request):
+    """
+    API endpoint for generating CSS transform code.
+    """
+    operations = request.data.get('operations', [])
+
+    if not operations:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'At least one transform operation is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        transform_functions = []
+
+        for op in operations:
+            op_type = op.get('type', '')
+            op_value = op.get('value', '')
+
+            if op_type and op_value:
+                transform_functions.append(f"{op_type}({op_value})")
+
+        if not transform_functions:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'No valid transform operations provided.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        css_code = f"transform: {' '.join(transform_functions)};"
+
+        output = {
+            'success': True,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS transform generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssAnimationRequestSerializer,
+    responses={
+        (200, 'application/json'): CssAnimationResponseSerializer,
+        (422, 'application/json'): CssAnimationErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_animation_generator(request):
+    """
+    API endpoint for generating CSS animation and keyframes code.
+    """
+    name = request.data.get('name', '')
+    keyframes = request.data.get('keyframes', [])
+    duration = request.data.get('duration', '1s')
+    timing_function = request.data.get('timing_function', 'ease')
+    iteration_count = request.data.get('iteration_count', '1')
+    direction = request.data.get('direction', 'normal')
+    fill_mode = request.data.get('fill_mode', 'none')
+
+    if not name or not keyframes:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Animation name and keyframes are required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Generate keyframes
+        keyframes_rules = []
+        for kf in keyframes:
+            percentage = kf.get('percentage', 0)
+            properties = kf.get('properties', {})
+
+            props_str = '\n        '.join([f"{prop}: {value};" for prop, value in properties.items()])
+            keyframes_rules.append(f"    {percentage}% {{\n        {props_str}\n    }}")
+
+        keyframes_code = f"@keyframes {name} {{\n" + '\n'.join(keyframes_rules) + "\n}"
+
+        # Generate animation property
+        animation_code = f"animation: {name} {duration} {timing_function} {iteration_count} {direction} {fill_mode};"
+
+        output = {
+            'success': True,
+            'keyframes_code': keyframes_code,
+            'animation_code': animation_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS animation generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssFilterRequestSerializer,
+    responses={
+        (200, 'application/json'): CssFilterResponseSerializer,
+        (422, 'application/json'): CssFilterErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_filter_generator(request):
+    """
+    API endpoint for generating CSS filter effects code.
+    """
+    filters = request.data.get('filters', [])
+
+    if not filters:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'At least one filter is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        filter_functions = []
+
+        for f in filters:
+            f_type = f.get('type', '')
+            f_value = f.get('value', '')
+
+            if f_type and f_value:
+                filter_functions.append(f"{f_type}({f_value})")
+
+        if not filter_functions:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'No valid filter operations provided.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        css_code = f"filter: {' '.join(filter_functions)};"
+
+        output = {
+            'success': True,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS filter generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
             content_type='application/json',
             status=422
         )
