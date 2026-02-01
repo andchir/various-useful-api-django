@@ -61,7 +61,11 @@ def test_full_request():
         "instagram_text": "Мы в Instagram!",
         "instagram_href": "https://instagram.com/example",
         "facebook_text": "Мы в Facebook!",
-        "facebook_href": "https://facebook.com/example"
+        "facebook_href": "https://facebook.com/example",
+        "youtube_text": "Наш YouTube-канал",
+        "youtube_href": "https://youtube.com/@example",
+        "tiktok_text": "Мы в TikTok!",
+        "tiktok_href": "https://tiktok.com/@example"
     }
 
     response = requests.post(API_URL, json=data, auth=HTTPBasicAuth(USERNAME, PASSWORD))
@@ -105,9 +109,36 @@ def test_partial_social_media():
     return response.status_code == 200
 
 
+def test_youtube_tiktok():
+    """Test with YouTube and TikTok buttons"""
+    print("\n=== Test 4: YouTube and TikTok buttons ===")
+
+    data = {
+        "app_embed_url": "https://api2app.org/ru/apps/embed/cd635a6f-41a8-4d24-800e-4f950f3e128f",
+        "button_text": "Открыть чат",
+        "youtube_text": "Наш YouTube-канал",
+        "youtube_href": "https://youtube.com/@example",
+        "tiktok_text": "Мы в TikTok!",
+        "tiktok_href": "https://tiktok.com/@example"
+    }
+
+    response = requests.post(API_URL, json=data, auth=HTTPBasicAuth(USERNAME, PASSWORD))
+
+    print(f"Status Code: {response.status_code}")
+    print(f"Response: {json.dumps(response.json(), indent=2, ensure_ascii=False)}")
+
+    if response.status_code == 200:
+        result = response.json()
+        if result.get('success'):
+            print("\n=== Generated Embed Code ===")
+            print(result['embed_code'])
+
+    return response.status_code == 200
+
+
 def test_different_position():
     """Test with different widget position"""
-    print("\n=== Test 4: Different position (top-left) ===")
+    print("\n=== Test 5: Different position (top-left) ===")
 
     data = {
         "app_embed_url": "https://api2app.org/ru/apps/embed/cd635a6f-41a8-4d24-800e-4f950f3e128f",
@@ -132,7 +163,7 @@ def test_different_position():
 
 def test_missing_required_field():
     """Test with missing required field (should fail)"""
-    print("\n=== Test 5: Missing required field (should return error) ===")
+    print("\n=== Test 6: Missing required field (should return error) ===")
 
     data = {
         "button_color": "#007bff"
@@ -167,6 +198,7 @@ def main():
     results.append(("Basic request", test_basic_request()))
     results.append(("Full request with all fields", test_full_request()))
     results.append(("Partial social media buttons", test_partial_social_media()))
+    results.append(("YouTube and TikTok buttons", test_youtube_tiktok()))
     results.append(("Different position", test_different_position()))
     results.append(("Missing required field", test_missing_required_field()))
 

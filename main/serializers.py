@@ -345,6 +345,10 @@ class WidgetEmbedCodeRequestSerializer(serializers.Serializer):
     instagram_href = serializers.URLField(required=False, allow_blank=True, default='')
     facebook_text = serializers.CharField(required=False, allow_blank=True, default='')
     facebook_href = serializers.URLField(required=False, allow_blank=True, default='')
+    youtube_text = serializers.CharField(required=False, allow_blank=True, default='')
+    youtube_href = serializers.URLField(required=False, allow_blank=True, default='')
+    tiktok_text = serializers.CharField(required=False, allow_blank=True, default='')
+    tiktok_href = serializers.URLField(required=False, allow_blank=True, default='')
 
 class WidgetEmbedCodeResponseSerializer(serializers.Serializer):
     success = serializers.BooleanField()
