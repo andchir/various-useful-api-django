@@ -114,6 +114,18 @@ urlpatterns = [
 
     # Plagiarism Checker
     path('api/v1/plagiarism_checker', views.plagiarism_checker, name='plagiarism_checker'),
+
+    # CSS Tools
+    path('api/v1/svg_to_css_background', views.svg_to_css_background, name='svg_to_css_background'),
+    path('api/v1/css_gradient_generator', views.css_gradient_generator, name='css_gradient_generator'),
+    path('api/v1/css_color_converter', views.css_color_converter, name='css_color_converter'),
+    path('api/v1/css_minifier', views.css_minifier, name='css_minifier'),
+    path('api/v1/css_autoprefixer', views.css_autoprefixer, name='css_autoprefixer'),
+    path('api/v1/css_box_shadow_generator', views.css_box_shadow_generator, name='css_box_shadow_generator'),
+    path('api/v1/css_text_shadow_generator', views.css_text_shadow_generator, name='css_text_shadow_generator'),
+    path('api/v1/css_transform_generator', views.css_transform_generator, name='css_transform_generator'),
+    path('api/v1/css_animation_generator', views.css_animation_generator, name='css_animation_generator'),
+    path('api/v1/css_filter_generator', views.css_filter_generator, name='css_filter_generator'),
 ]
 
 urlpatterns += [

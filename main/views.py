@@ -17,6 +17,10 @@ from datetime import datetime
 import difflib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import re
+import colorzero
+import cssutils
+import tinycss2
 from django.http import HttpResponse, FileResponse
 from django.contrib.auth.models import User, Group
 from django.utils.decorators import method_decorator
@@ -61,7 +65,17 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     OCRTextRecognitionErrorSerializer, CurrencyConverterRequestSerializer, CurrencyConverterResponseSerializer, \
     CurrencyConverterErrorSerializer, WeatherAPIRequestSerializer, WeatherAPIResponseSerializer, \
     WeatherAPIErrorSerializer, PlagiarismCheckerRequestSerializer, PlagiarismCheckerResponseSerializer, \
-    PlagiarismCheckerErrorSerializer
+    PlagiarismCheckerErrorSerializer, SvgToCssBackgroundRequestSerializer, SvgToCssBackgroundResponseSerializer, \
+    SvgToCssBackgroundErrorSerializer, CssGradientRequestSerializer, CssGradientResponseSerializer, \
+    CssGradientErrorSerializer, CssColorConverterRequestSerializer, CssColorConverterResponseSerializer, \
+    CssColorConverterErrorSerializer, CssMinifierRequestSerializer, CssMinifierResponseSerializer, \
+    CssMinifierErrorSerializer, CssAutoprefixerRequestSerializer, CssAutoprefixerResponseSerializer, \
+    CssAutoprefixerErrorSerializer, CssBoxShadowRequestSerializer, CssBoxShadowResponseSerializer, \
+    CssBoxShadowErrorSerializer, CssTextShadowRequestSerializer, CssTextShadowResponseSerializer, \
+    CssTextShadowErrorSerializer, CssTransformRequestSerializer, CssTransformResponseSerializer, \
+    CssTransformErrorSerializer, CssAnimationRequestSerializer, CssAnimationResponseSerializer, \
+    CssAnimationErrorSerializer, CssFilterRequestSerializer, CssFilterResponseSerializer, \
+    CssFilterErrorSerializer
 from main.permissions import IsOwnerOnly
 # from pytube import YouTube
 from pytubefix import YouTube
@@ -2219,6 +2233,611 @@ def plagiarism_checker(request):
         logger.error(f"Plagiarism check error: {str(e)}")
         return HttpResponse(
             json.dumps({'success': False, 'message': f'Plagiarism check failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+# CSS APIs
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=SvgToCssBackgroundRequestSerializer,
+    responses={
+        (200, 'application/json'): SvgToCssBackgroundResponseSerializer,
+        (422, 'application/json'): SvgToCssBackgroundErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def svg_to_css_background(request):
+    """
+    API endpoint for converting SVG code to CSS background-image URL.
+    """
+    svg_code = request.data.get('svg_code', '')
+
+    if not svg_code:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'SVG code is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Encode SVG for use in CSS
+        # Replace problematic characters
+        svg_encoded = svg_code.replace('\n', '').replace('\r', '').replace('\t', ' ')
+        svg_encoded = svg_encoded.replace('"', "'")
+        svg_encoded = svg_encoded.replace('%', '%25')
+        svg_encoded = svg_encoded.replace('#', '%23')
+        svg_encoded = svg_encoded.replace('<', '%3C')
+        svg_encoded = svg_encoded.replace('>', '%3E')
+        svg_encoded = svg_encoded.replace('&', '%26')
+
+        css_url = f"data:image/svg+xml,{svg_encoded}"
+        css_code = f"background-image: url(\"{css_url}\");"
+
+        output = {
+            'success': True,
+            'css_url': css_url,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"SVG to CSS background conversion error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Conversion failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssGradientRequestSerializer,
+    responses={
+        (200, 'application/json'): CssGradientResponseSerializer,
+        (422, 'application/json'): CssGradientErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_gradient_generator(request):
+    """
+    API endpoint for generating CSS gradient code.
+    """
+    gradient_type = request.data.get('type', 'linear')
+    colors = request.data.get('colors', [])
+    angle = request.data.get('angle', 180)
+    shape = request.data.get('shape', 'ellipse')
+    position = request.data.get('position', 'center')
+
+    if not colors or len(colors) < 2:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'At least 2 colors are required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Build color stops
+        color_stops = []
+        for i, color_stop in enumerate(colors):
+            color = color_stop.get('color', '')
+            pos = color_stop.get('position', None)
+
+            if pos is not None:
+                color_stops.append(f"{color} {pos}%")
+            else:
+                color_stops.append(color)
+
+        colors_str = ', '.join(color_stops)
+
+        # Generate CSS based on type
+        if gradient_type == 'linear':
+            css_code = f"background: linear-gradient({angle}deg, {colors_str});"
+        elif gradient_type == 'radial':
+            css_code = f"background: radial-gradient({shape} at {position}, {colors_str});"
+        elif gradient_type == 'conic':
+            css_code = f"background: conic-gradient(from {angle}deg at {position}, {colors_str});"
+        else:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Invalid gradient type.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        output = {
+            'success': True,
+            'css_code': css_code,
+            'type': gradient_type
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS gradient generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssColorConverterRequestSerializer,
+    responses={
+        (200, 'application/json'): CssColorConverterResponseSerializer,
+        (422, 'application/json'): CssColorConverterErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_color_converter(request):
+    """
+    API endpoint for converting colors between different CSS formats.
+    """
+    color = request.data.get('color', '')
+    from_format = request.data.get('from_format', 'auto')
+    to_format = request.data.get('to_format', '')
+
+    if not color or not to_format:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Color and to_format are required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Parse color using colorzero
+        parsed_color = colorzero.Color(color)
+
+        # Detect format if auto
+        if from_format == 'auto':
+            if color.startswith('#'):
+                from_format = 'hex'
+            elif color.startswith('rgb'):
+                from_format = 'rgba' if 'rgba' in color else 'rgb'
+            elif color.startswith('hsl'):
+                from_format = 'hsla' if 'hsla' in color else 'hsl'
+            else:
+                from_format = 'unknown'
+
+        # Convert to requested format
+        converted_color = ''
+        if to_format == 'hex':
+            converted_color = parsed_color.html
+        elif to_format == 'rgb':
+            r, g, b = int(parsed_color.red * 255), int(parsed_color.green * 255), int(parsed_color.blue * 255)
+            converted_color = f"rgb({r}, {g}, {b})"
+        elif to_format == 'rgba':
+            r, g, b = int(parsed_color.red * 255), int(parsed_color.green * 255), int(parsed_color.blue * 255)
+            a = parsed_color.alpha if hasattr(parsed_color, 'alpha') else 1.0
+            converted_color = f"rgba({r}, {g}, {b}, {a})"
+        elif to_format == 'hsl':
+            h, s, l = int(parsed_color.hue * 360), int(parsed_color.saturation * 100), int(parsed_color.lightness * 100)
+            converted_color = f"hsl({h}, {s}%, {l}%)"
+        elif to_format == 'hsla':
+            h, s, l = int(parsed_color.hue * 360), int(parsed_color.saturation * 100), int(parsed_color.lightness * 100)
+            a = parsed_color.alpha if hasattr(parsed_color, 'alpha') else 1.0
+            converted_color = f"hsla({h}, {s}%, {l}%, {a})"
+        else:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'Invalid target format.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        output = {
+            'success': True,
+            'original_color': color,
+            'converted_color': converted_color,
+            'from_format': from_format,
+            'to_format': to_format
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS color conversion error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Conversion failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssMinifierRequestSerializer,
+    responses={
+        (200, 'application/json'): CssMinifierResponseSerializer,
+        (422, 'application/json'): CssMinifierErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_minifier(request):
+    """
+    API endpoint for minifying CSS code.
+    """
+    css_code = request.data.get('css_code', '')
+
+    if not css_code:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'CSS code is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        original_size = len(css_code)
+
+        # Parse and minify CSS using cssutils
+        cssutils.log.setLevel(logging.CRITICAL)  # Suppress cssutils warnings
+        sheet = cssutils.parseString(css_code)
+        minified_css = sheet.cssText.decode('utf-8') if isinstance(sheet.cssText, bytes) else sheet.cssText
+
+        minified_size = len(minified_css)
+        saved_bytes = original_size - minified_size
+        saved_percentage = (saved_bytes / original_size * 100) if original_size > 0 else 0
+
+        output = {
+            'success': True,
+            'minified_css': minified_css,
+            'original_size': original_size,
+            'minified_size': minified_size,
+            'saved_bytes': saved_bytes,
+            'saved_percentage': round(saved_percentage, 2)
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS minification error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Minification failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssAutoprefixerRequestSerializer,
+    responses={
+        (200, 'application/json'): CssAutoprefixerResponseSerializer,
+        (422, 'application/json'): CssAutoprefixerErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_autoprefixer(request):
+    """
+    API endpoint for adding vendor prefixes to CSS.
+    Note: This is a simple implementation. For production use, consider using PostCSS with Autoprefixer.
+    """
+    css_code = request.data.get('css_code', '')
+    browsers = request.data.get('browsers', [])
+
+    if not css_code:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'CSS code is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Simple autoprefixer implementation
+        # Map of properties that need vendor prefixes
+        prefix_map = {
+            'transform': ['-webkit-transform', '-moz-transform', '-ms-transform', 'transform'],
+            'transition': ['-webkit-transition', '-moz-transition', '-ms-transition', 'transition'],
+            'animation': ['-webkit-animation', '-moz-animation', '-ms-animation', 'animation'],
+            'box-shadow': ['-webkit-box-shadow', '-moz-box-shadow', 'box-shadow'],
+            'border-radius': ['-webkit-border-radius', '-moz-border-radius', 'border-radius'],
+            'box-sizing': ['-webkit-box-sizing', '-moz-box-sizing', 'box-sizing'],
+            'user-select': ['-webkit-user-select', '-moz-user-select', '-ms-user-select', 'user-select'],
+            'appearance': ['-webkit-appearance', '-moz-appearance', 'appearance'],
+            'flex': ['-webkit-flex', '-moz-flex', '-ms-flex', 'flex'],
+            'flex-direction': ['-webkit-flex-direction', '-moz-flex-direction', '-ms-flex-direction', 'flex-direction'],
+            'justify-content': ['-webkit-justify-content', '-moz-justify-content', '-ms-justify-content', 'justify-content'],
+            'align-items': ['-webkit-align-items', '-moz-align-items', '-ms-align-items', 'align-items'],
+        }
+
+        prefixed_css = css_code
+
+        # Add vendor prefixes
+        for prop, prefixed_props in prefix_map.items():
+            # Find property declarations
+            pattern = re.compile(rf'\b{prop}\s*:\s*([^;]+);', re.IGNORECASE)
+            matches = pattern.findall(prefixed_css)
+
+            for match in matches:
+                original = f"{prop}: {match};"
+                prefixed_versions = '\n    '.join([f"{p}: {match};" for p in prefixed_props])
+                prefixed_css = prefixed_css.replace(original, prefixed_versions)
+
+        output = {
+            'success': True,
+            'prefixed_css': prefixed_css
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS autoprefixer error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Autoprefixing failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssBoxShadowRequestSerializer,
+    responses={
+        (200, 'application/json'): CssBoxShadowResponseSerializer,
+        (422, 'application/json'): CssBoxShadowErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_box_shadow_generator(request):
+    """
+    API endpoint for generating CSS box-shadow code.
+    """
+    h_offset = request.data.get('h_offset', 0)
+    v_offset = request.data.get('v_offset', 0)
+    blur = request.data.get('blur', 10)
+    spread = request.data.get('spread', 0)
+    color = request.data.get('color', 'rgba(0, 0, 0, 0.5)')
+    inset = request.data.get('inset', False)
+
+    try:
+        inset_str = 'inset ' if inset else ''
+        css_code = f"box-shadow: {inset_str}{h_offset}px {v_offset}px {blur}px {spread}px {color};"
+
+        output = {
+            'success': True,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS box-shadow generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssTextShadowRequestSerializer,
+    responses={
+        (200, 'application/json'): CssTextShadowResponseSerializer,
+        (422, 'application/json'): CssTextShadowErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_text_shadow_generator(request):
+    """
+    API endpoint for generating CSS text-shadow code.
+    """
+    h_offset = request.data.get('h_offset', 2)
+    v_offset = request.data.get('v_offset', 2)
+    blur = request.data.get('blur', 4)
+    color = request.data.get('color', 'rgba(0, 0, 0, 0.5)')
+
+    try:
+        css_code = f"text-shadow: {h_offset}px {v_offset}px {blur}px {color};"
+
+        output = {
+            'success': True,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS text-shadow generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssTransformRequestSerializer,
+    responses={
+        (200, 'application/json'): CssTransformResponseSerializer,
+        (422, 'application/json'): CssTransformErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_transform_generator(request):
+    """
+    API endpoint for generating CSS transform code.
+    """
+    operations = request.data.get('operations', [])
+
+    if not operations:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'At least one transform operation is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        transform_functions = []
+
+        for op in operations:
+            op_type = op.get('type', '')
+            op_value = op.get('value', '')
+
+            if op_type and op_value:
+                transform_functions.append(f"{op_type}({op_value})")
+
+        if not transform_functions:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'No valid transform operations provided.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        css_code = f"transform: {' '.join(transform_functions)};"
+
+        output = {
+            'success': True,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS transform generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssAnimationRequestSerializer,
+    responses={
+        (200, 'application/json'): CssAnimationResponseSerializer,
+        (422, 'application/json'): CssAnimationErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_animation_generator(request):
+    """
+    API endpoint for generating CSS animation and keyframes code.
+    """
+    name = request.data.get('name', '')
+    keyframes = request.data.get('keyframes', [])
+    duration = request.data.get('duration', '1s')
+    timing_function = request.data.get('timing_function', 'ease')
+    iteration_count = request.data.get('iteration_count', '1')
+    direction = request.data.get('direction', 'normal')
+    fill_mode = request.data.get('fill_mode', 'none')
+
+    if not name or not keyframes:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'Animation name and keyframes are required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        # Generate keyframes
+        keyframes_rules = []
+        for kf in keyframes:
+            percentage = kf.get('percentage', 0)
+            properties = kf.get('properties', {})
+
+            props_str = '\n        '.join([f"{prop}: {value};" for prop, value in properties.items()])
+            keyframes_rules.append(f"    {percentage}% {{\n        {props_str}\n    }}")
+
+        keyframes_code = f"@keyframes {name} {{\n" + '\n'.join(keyframes_rules) + "\n}"
+
+        # Generate animation property
+        animation_code = f"animation: {name} {duration} {timing_function} {iteration_count} {direction} {fill_mode};"
+
+        output = {
+            'success': True,
+            'keyframes_code': keyframes_code,
+            'animation_code': animation_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS animation generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
+            content_type='application/json',
+            status=422
+        )
+
+
+@extend_schema(
+    tags=['CSS Tools'],
+    request=CssFilterRequestSerializer,
+    responses={
+        (200, 'application/json'): CssFilterResponseSerializer,
+        (422, 'application/json'): CssFilterErrorSerializer
+    }
+)
+@api_view(['POST'])
+@authentication_classes([BasicAuthentication])
+@permission_classes([permissions.IsAuthenticated])
+def css_filter_generator(request):
+    """
+    API endpoint for generating CSS filter effects code.
+    """
+    filters = request.data.get('filters', [])
+
+    if not filters:
+        return HttpResponse(
+            json.dumps({'success': False, 'message': 'At least one filter is required.'}),
+            content_type='application/json',
+            status=422
+        )
+
+    try:
+        filter_functions = []
+
+        for f in filters:
+            f_type = f.get('type', '')
+            f_value = f.get('value', '')
+
+            if f_type and f_value:
+                filter_functions.append(f"{f_type}({f_value})")
+
+        if not filter_functions:
+            return HttpResponse(
+                json.dumps({'success': False, 'message': 'No valid filter operations provided.'}),
+                content_type='application/json',
+                status=422
+            )
+
+        css_code = f"filter: {' '.join(filter_functions)};"
+
+        output = {
+            'success': True,
+            'css_code': css_code
+        }
+
+        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
+
+    except Exception as e:
+        logger.error(f"CSS filter generation error: {str(e)}")
+        return HttpResponse(
+            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
             content_type='application/json',
             status=422
         )

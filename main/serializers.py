@@ -468,3 +468,249 @@ class PlagiarismCheckerResponseSerializer(serializers.Serializer):
 class PlagiarismCheckerErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+
+# CSS APIs Serializers
+
+# 1. SVG to CSS background-image URL
+class SvgToCssBackgroundRequestSerializer(serializers.Serializer):
+    svg_code = serializers.CharField(help_text="SVG code to convert to CSS background-image URL")
+
+
+class SvgToCssBackgroundResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    css_url = serializers.CharField()
+    css_code = serializers.CharField()
+
+
+class SvgToCssBackgroundErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# 2. CSS Gradient Generator
+class CssGradientColorStopSerializer(serializers.Serializer):
+    color = serializers.CharField()
+    position = serializers.IntegerField(required=False)
+
+
+class CssGradientRequestSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(
+        choices=['linear', 'radial', 'conic'],
+        default='linear',
+        help_text="Gradient type: linear, radial, or conic"
+    )
+    colors = CssGradientColorStopSerializer(many=True, help_text="Array of color stops")
+    angle = serializers.IntegerField(default=180, required=False, help_text="Angle in degrees (for linear gradient)")
+    shape = serializers.ChoiceField(
+        choices=['circle', 'ellipse'],
+        default='ellipse',
+        required=False,
+        help_text="Shape for radial gradient"
+    )
+    position = serializers.CharField(default='center', required=False, help_text="Position (center, top left, etc.)")
+
+
+class CssGradientResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    css_code = serializers.CharField()
+    type = serializers.CharField()
+
+
+class CssGradientErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# 3. CSS Color Converter
+class CssColorConverterRequestSerializer(serializers.Serializer):
+    color = serializers.CharField(help_text="Color value to convert")
+    from_format = serializers.ChoiceField(
+        choices=['hex', 'rgb', 'rgba', 'hsl', 'hsla', 'auto'],
+        default='auto',
+        required=False,
+        help_text="Source color format (auto-detect if not specified)"
+    )
+    to_format = serializers.ChoiceField(
+        choices=['hex', 'rgb', 'rgba', 'hsl', 'hsla'],
+        help_text="Target color format"
+    )
+
+
+class CssColorConverterResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    original_color = serializers.CharField()
+    converted_color = serializers.CharField()
+    from_format = serializers.CharField()
+    to_format = serializers.CharField()
+
+
+class CssColorConverterErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# 4. CSS Minifier
+class CssMinifierRequestSerializer(serializers.Serializer):
+    css_code = serializers.CharField(help_text="CSS code to minify")
+
+
+class CssMinifierResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    minified_css = serializers.CharField()
+    original_size = serializers.IntegerField()
+    minified_size = serializers.IntegerField()
+    saved_bytes = serializers.IntegerField()
+    saved_percentage = serializers.FloatField()
+
+
+class CssMinifierErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# 5. CSS Autoprefixer
+class CssAutoprefixerRequestSerializer(serializers.Serializer):
+    css_code = serializers.CharField(help_text="CSS code to add vendor prefixes to")
+    browsers = serializers.ListField(
+        child=serializers.CharField(),
+        default=list,
+        required=False,
+        help_text="Target browsers (e.g., ['last 2 versions', 'ie >= 11'])"
+    )
+
+
+class CssAutoprefixerResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    prefixed_css = serializers.CharField()
+
+
+class CssAutoprefixerErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# 6. CSS Box Shadow Generator
+class CssBoxShadowRequestSerializer(serializers.Serializer):
+    h_offset = serializers.IntegerField(default=0, help_text="Horizontal offset in pixels")
+    v_offset = serializers.IntegerField(default=0, help_text="Vertical offset in pixels")
+    blur = serializers.IntegerField(default=10, help_text="Blur radius in pixels")
+    spread = serializers.IntegerField(default=0, required=False, help_text="Spread radius in pixels")
+    color = serializers.CharField(default='rgba(0, 0, 0, 0.5)', help_text="Shadow color")
+    inset = serializers.BooleanField(default=False, required=False, help_text="Inset shadow")
+
+
+class CssBoxShadowResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    css_code = serializers.CharField()
+
+
+class CssBoxShadowErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# 7. CSS Text Shadow Generator
+class CssTextShadowRequestSerializer(serializers.Serializer):
+    h_offset = serializers.IntegerField(default=2, help_text="Horizontal offset in pixels")
+    v_offset = serializers.IntegerField(default=2, help_text="Vertical offset in pixels")
+    blur = serializers.IntegerField(default=4, help_text="Blur radius in pixels")
+    color = serializers.CharField(default='rgba(0, 0, 0, 0.5)', help_text="Shadow color")
+
+
+class CssTextShadowResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    css_code = serializers.CharField()
+
+
+class CssTextShadowErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# 8. CSS Transform Generator
+class CssTransformOperationSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(
+        choices=['rotate', 'scale', 'scaleX', 'scaleY', 'translate', 'translateX', 'translateY', 'skew', 'skewX', 'skewY'],
+        help_text="Transform operation type"
+    )
+    value = serializers.CharField(help_text="Transform value (e.g., '45deg', '1.5', '20px')")
+
+
+class CssTransformRequestSerializer(serializers.Serializer):
+    operations = CssTransformOperationSerializer(many=True, help_text="Array of transform operations")
+
+
+class CssTransformResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    css_code = serializers.CharField()
+
+
+class CssTransformErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# 9. CSS Animation/Keyframes Generator
+class CssKeyframeSerializer(serializers.Serializer):
+    percentage = serializers.IntegerField(help_text="Keyframe percentage (0-100)")
+    properties = serializers.DictField(help_text="CSS properties for this keyframe")
+
+
+class CssAnimationRequestSerializer(serializers.Serializer):
+    name = serializers.CharField(help_text="Animation name")
+    keyframes = CssKeyframeSerializer(many=True, help_text="Array of keyframe definitions")
+    duration = serializers.CharField(default='1s', required=False, help_text="Animation duration (e.g., '1s', '500ms')")
+    timing_function = serializers.ChoiceField(
+        choices=['ease', 'linear', 'ease-in', 'ease-out', 'ease-in-out'],
+        default='ease',
+        required=False,
+        help_text="Timing function"
+    )
+    iteration_count = serializers.CharField(default='1', required=False, help_text="Iteration count (number or 'infinite')")
+    direction = serializers.ChoiceField(
+        choices=['normal', 'reverse', 'alternate', 'alternate-reverse'],
+        default='normal',
+        required=False,
+        help_text="Animation direction"
+    )
+    fill_mode = serializers.ChoiceField(
+        choices=['none', 'forwards', 'backwards', 'both'],
+        default='none',
+        required=False,
+        help_text="Fill mode"
+    )
+
+
+class CssAnimationResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    keyframes_code = serializers.CharField()
+    animation_code = serializers.CharField()
+
+
+class CssAnimationErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+# 10. CSS Filter Effects Generator
+class CssFilterOperationSerializer(serializers.Serializer):
+    type = serializers.ChoiceField(
+        choices=['blur', 'brightness', 'contrast', 'grayscale', 'hue-rotate', 'invert', 'opacity', 'saturate', 'sepia', 'drop-shadow'],
+        help_text="Filter type"
+    )
+    value = serializers.CharField(help_text="Filter value (e.g., '5px', '1.5', '120deg', '0.5')")
+
+
+class CssFilterRequestSerializer(serializers.Serializer):
+    filters = CssFilterOperationSerializer(many=True, help_text="Array of filter operations")
+
+
+class CssFilterResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    css_code = serializers.CharField()
+
+
+class CssFilterErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
