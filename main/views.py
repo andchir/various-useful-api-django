@@ -18,9 +18,6 @@ import difflib
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
-import colorzero
-import cssutils
-import tinycss2
 from django.http import HttpResponse, FileResponse
 from django.contrib.auth.models import User, Group
 from django.utils.decorators import method_decorator
@@ -67,12 +64,8 @@ from main.serializers import UserSerializer, GroupSerializer, ProductModelSerial
     WeatherAPIErrorSerializer, PlagiarismCheckerRequestSerializer, PlagiarismCheckerResponseSerializer, \
     PlagiarismCheckerErrorSerializer, SvgToCssBackgroundRequestSerializer, SvgToCssBackgroundResponseSerializer, \
     SvgToCssBackgroundErrorSerializer, CssGradientRequestSerializer, CssGradientResponseSerializer, \
-    CssGradientErrorSerializer, CssColorConverterRequestSerializer, CssColorConverterResponseSerializer, \
-    CssColorConverterErrorSerializer, CssMinifierRequestSerializer, CssMinifierResponseSerializer, \
-    CssMinifierErrorSerializer, CssAutoprefixerRequestSerializer, CssAutoprefixerResponseSerializer, \
-    CssAutoprefixerErrorSerializer, CssBoxShadowRequestSerializer, CssBoxShadowResponseSerializer, \
-    CssBoxShadowErrorSerializer, CssTextShadowRequestSerializer, CssTextShadowResponseSerializer, \
-    CssTextShadowErrorSerializer, CssTransformRequestSerializer, CssTransformResponseSerializer, \
+    CssGradientErrorSerializer, CssBoxShadowRequestSerializer, CssBoxShadowResponseSerializer, \
+    CssBoxShadowErrorSerializer, CssTransformRequestSerializer, CssTransformResponseSerializer, \
     CssTransformErrorSerializer, CssAnimationRequestSerializer, CssAnimationResponseSerializer, \
     CssAnimationErrorSerializer, CssFilterRequestSerializer, CssFilterResponseSerializer, \
     CssFilterErrorSerializer
@@ -2370,220 +2363,6 @@ def css_gradient_generator(request):
 
 @extend_schema(
     tags=['CSS Tools'],
-    request=CssColorConverterRequestSerializer,
-    responses={
-        (200, 'application/json'): CssColorConverterResponseSerializer,
-        (422, 'application/json'): CssColorConverterErrorSerializer
-    }
-)
-@api_view(['POST'])
-@authentication_classes([BasicAuthentication])
-@permission_classes([permissions.IsAuthenticated])
-def css_color_converter(request):
-    """
-    API endpoint for converting colors between different CSS formats.
-    """
-    color = request.data.get('color', '')
-    from_format = request.data.get('from_format', 'auto')
-    to_format = request.data.get('to_format', '')
-
-    if not color or not to_format:
-        return HttpResponse(
-            json.dumps({'success': False, 'message': 'Color and to_format are required.'}),
-            content_type='application/json',
-            status=422
-        )
-
-    try:
-        # Parse color using colorzero
-        parsed_color = colorzero.Color(color)
-
-        # Detect format if auto
-        if from_format == 'auto':
-            if color.startswith('#'):
-                from_format = 'hex'
-            elif color.startswith('rgb'):
-                from_format = 'rgba' if 'rgba' in color else 'rgb'
-            elif color.startswith('hsl'):
-                from_format = 'hsla' if 'hsla' in color else 'hsl'
-            else:
-                from_format = 'unknown'
-
-        # Convert to requested format
-        converted_color = ''
-        if to_format == 'hex':
-            converted_color = parsed_color.html
-        elif to_format == 'rgb':
-            r, g, b = int(parsed_color.red * 255), int(parsed_color.green * 255), int(parsed_color.blue * 255)
-            converted_color = f"rgb({r}, {g}, {b})"
-        elif to_format == 'rgba':
-            r, g, b = int(parsed_color.red * 255), int(parsed_color.green * 255), int(parsed_color.blue * 255)
-            a = parsed_color.alpha if hasattr(parsed_color, 'alpha') else 1.0
-            converted_color = f"rgba({r}, {g}, {b}, {a})"
-        elif to_format == 'hsl':
-            h, s, l = int(parsed_color.hue * 360), int(parsed_color.saturation * 100), int(parsed_color.lightness * 100)
-            converted_color = f"hsl({h}, {s}%, {l}%)"
-        elif to_format == 'hsla':
-            h, s, l = int(parsed_color.hue * 360), int(parsed_color.saturation * 100), int(parsed_color.lightness * 100)
-            a = parsed_color.alpha if hasattr(parsed_color, 'alpha') else 1.0
-            converted_color = f"hsla({h}, {s}%, {l}%, {a})"
-        else:
-            return HttpResponse(
-                json.dumps({'success': False, 'message': 'Invalid target format.'}),
-                content_type='application/json',
-                status=422
-            )
-
-        output = {
-            'success': True,
-            'original_color': color,
-            'converted_color': converted_color,
-            'from_format': from_format,
-            'to_format': to_format
-        }
-
-        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
-
-    except Exception as e:
-        logger.error(f"CSS color conversion error: {str(e)}")
-        return HttpResponse(
-            json.dumps({'success': False, 'message': f'Conversion failed: {str(e)}'}),
-            content_type='application/json',
-            status=422
-        )
-
-
-@extend_schema(
-    tags=['CSS Tools'],
-    request=CssMinifierRequestSerializer,
-    responses={
-        (200, 'application/json'): CssMinifierResponseSerializer,
-        (422, 'application/json'): CssMinifierErrorSerializer
-    }
-)
-@api_view(['POST'])
-@authentication_classes([BasicAuthentication])
-@permission_classes([permissions.IsAuthenticated])
-def css_minifier(request):
-    """
-    API endpoint for minifying CSS code.
-    """
-    css_code = request.data.get('css_code', '')
-
-    if not css_code:
-        return HttpResponse(
-            json.dumps({'success': False, 'message': 'CSS code is required.'}),
-            content_type='application/json',
-            status=422
-        )
-
-    try:
-        original_size = len(css_code)
-
-        # Parse and minify CSS using cssutils
-        cssutils.log.setLevel(logging.CRITICAL)  # Suppress cssutils warnings
-        sheet = cssutils.parseString(css_code)
-        minified_css = sheet.cssText.decode('utf-8') if isinstance(sheet.cssText, bytes) else sheet.cssText
-
-        minified_size = len(minified_css)
-        saved_bytes = original_size - minified_size
-        saved_percentage = (saved_bytes / original_size * 100) if original_size > 0 else 0
-
-        output = {
-            'success': True,
-            'minified_css': minified_css,
-            'original_size': original_size,
-            'minified_size': minified_size,
-            'saved_bytes': saved_bytes,
-            'saved_percentage': round(saved_percentage, 2)
-        }
-
-        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
-
-    except Exception as e:
-        logger.error(f"CSS minification error: {str(e)}")
-        return HttpResponse(
-            json.dumps({'success': False, 'message': f'Minification failed: {str(e)}'}),
-            content_type='application/json',
-            status=422
-        )
-
-
-@extend_schema(
-    tags=['CSS Tools'],
-    request=CssAutoprefixerRequestSerializer,
-    responses={
-        (200, 'application/json'): CssAutoprefixerResponseSerializer,
-        (422, 'application/json'): CssAutoprefixerErrorSerializer
-    }
-)
-@api_view(['POST'])
-@authentication_classes([BasicAuthentication])
-@permission_classes([permissions.IsAuthenticated])
-def css_autoprefixer(request):
-    """
-    API endpoint for adding vendor prefixes to CSS.
-    Note: This is a simple implementation. For production use, consider using PostCSS with Autoprefixer.
-    """
-    css_code = request.data.get('css_code', '')
-    browsers = request.data.get('browsers', [])
-
-    if not css_code:
-        return HttpResponse(
-            json.dumps({'success': False, 'message': 'CSS code is required.'}),
-            content_type='application/json',
-            status=422
-        )
-
-    try:
-        # Simple autoprefixer implementation
-        # Map of properties that need vendor prefixes
-        prefix_map = {
-            'transform': ['-webkit-transform', '-moz-transform', '-ms-transform', 'transform'],
-            'transition': ['-webkit-transition', '-moz-transition', '-ms-transition', 'transition'],
-            'animation': ['-webkit-animation', '-moz-animation', '-ms-animation', 'animation'],
-            'box-shadow': ['-webkit-box-shadow', '-moz-box-shadow', 'box-shadow'],
-            'border-radius': ['-webkit-border-radius', '-moz-border-radius', 'border-radius'],
-            'box-sizing': ['-webkit-box-sizing', '-moz-box-sizing', 'box-sizing'],
-            'user-select': ['-webkit-user-select', '-moz-user-select', '-ms-user-select', 'user-select'],
-            'appearance': ['-webkit-appearance', '-moz-appearance', 'appearance'],
-            'flex': ['-webkit-flex', '-moz-flex', '-ms-flex', 'flex'],
-            'flex-direction': ['-webkit-flex-direction', '-moz-flex-direction', '-ms-flex-direction', 'flex-direction'],
-            'justify-content': ['-webkit-justify-content', '-moz-justify-content', '-ms-justify-content', 'justify-content'],
-            'align-items': ['-webkit-align-items', '-moz-align-items', '-ms-align-items', 'align-items'],
-        }
-
-        prefixed_css = css_code
-
-        # Add vendor prefixes
-        for prop, prefixed_props in prefix_map.items():
-            # Find property declarations
-            pattern = re.compile(rf'\b{prop}\s*:\s*([^;]+);', re.IGNORECASE)
-            matches = pattern.findall(prefixed_css)
-
-            for match in matches:
-                original = f"{prop}: {match};"
-                prefixed_versions = '\n    '.join([f"{p}: {match};" for p in prefixed_props])
-                prefixed_css = prefixed_css.replace(original, prefixed_versions)
-
-        output = {
-            'success': True,
-            'prefixed_css': prefixed_css
-        }
-
-        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
-
-    except Exception as e:
-        logger.error(f"CSS autoprefixer error: {str(e)}")
-        return HttpResponse(
-            json.dumps({'success': False, 'message': f'Autoprefixing failed: {str(e)}'}),
-            content_type='application/json',
-            status=422
-        )
-
-
-@extend_schema(
-    tags=['CSS Tools'],
     request=CssBoxShadowRequestSerializer,
     responses={
         (200, 'application/json'): CssBoxShadowResponseSerializer,
@@ -2617,45 +2396,6 @@ def css_box_shadow_generator(request):
 
     except Exception as e:
         logger.error(f"CSS box-shadow generation error: {str(e)}")
-        return HttpResponse(
-            json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
-            content_type='application/json',
-            status=422
-        )
-
-
-@extend_schema(
-    tags=['CSS Tools'],
-    request=CssTextShadowRequestSerializer,
-    responses={
-        (200, 'application/json'): CssTextShadowResponseSerializer,
-        (422, 'application/json'): CssTextShadowErrorSerializer
-    }
-)
-@api_view(['POST'])
-@authentication_classes([BasicAuthentication])
-@permission_classes([permissions.IsAuthenticated])
-def css_text_shadow_generator(request):
-    """
-    API endpoint for generating CSS text-shadow code.
-    """
-    h_offset = request.data.get('h_offset', 2)
-    v_offset = request.data.get('v_offset', 2)
-    blur = request.data.get('blur', 4)
-    color = request.data.get('color', 'rgba(0, 0, 0, 0.5)')
-
-    try:
-        css_code = f"text-shadow: {h_offset}px {v_offset}px {blur}px {color};"
-
-        output = {
-            'success': True,
-            'css_code': css_code
-        }
-
-        return HttpResponse(json.dumps(output), content_type='application/json', status=200)
-
-    except Exception as e:
-        logger.error(f"CSS text-shadow generation error: {str(e)}")
         return HttpResponse(
             json.dumps({'success': False, 'message': f'Generation failed: {str(e)}'}),
             content_type='application/json',

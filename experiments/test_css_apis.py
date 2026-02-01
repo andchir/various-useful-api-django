@@ -2,17 +2,13 @@
 """
 Test script for CSS Tools API endpoints.
 
-This script tests all 10 CSS-related API endpoints:
+This script tests all 6 CSS-related API endpoints:
 1. SVG to CSS background-image URL converter
 2. CSS Gradient Generator
-3. CSS Color Converter
-4. CSS Minifier
-5. CSS Autoprefixer
-6. CSS Box Shadow Generator
-7. CSS Text Shadow Generator
-8. CSS Transform Generator
-9. CSS Animation/Keyframes Generator
-10. CSS Filter Effects Generator
+3. CSS Box Shadow Generator
+4. CSS Transform Generator
+5. CSS Animation/Keyframes Generator
+6. CSS Filter Effects Generator
 """
 
 import json
@@ -94,102 +90,9 @@ def test_css_gradient_generator_radial():
     return response.status_code == 200
 
 
-def test_css_color_converter():
-    """Test CSS Color Converter"""
-    print("\n=== Test 3: CSS Color Converter ===")
-
-    API_URL = f"{BASE_URL}/api/v1/css_color_converter"
-
-    # Test HEX to RGB conversion
-    data = {
-        "color": "#ff5733",
-        "from_format": "hex",
-        "to_format": "rgb"
-    }
-
-    response = requests.post(API_URL, json=data, auth=HTTPBasicAuth(USERNAME, PASSWORD))
-
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {json.dumps(response.json(), indent=2)}")
-
-    return response.status_code == 200
-
-
-def test_css_color_converter_hsl():
-    """Test CSS Color Converter to HSL"""
-    print("\n=== Test 3b: CSS Color Converter (to HSL) ===")
-
-    API_URL = f"{BASE_URL}/api/v1/css_color_converter"
-
-    data = {
-        "color": "rgb(255, 87, 51)",
-        "to_format": "hsl"
-    }
-
-    response = requests.post(API_URL, json=data, auth=HTTPBasicAuth(USERNAME, PASSWORD))
-
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {json.dumps(response.json(), indent=2)}")
-
-    return response.status_code == 200
-
-
-def test_css_minifier():
-    """Test CSS Minifier"""
-    print("\n=== Test 4: CSS Minifier ===")
-
-    API_URL = f"{BASE_URL}/api/v1/css_minifier"
-
-    data = {
-        "css_code": """
-        body {
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-        """
-    }
-
-    response = requests.post(API_URL, json=data, auth=HTTPBasicAuth(USERNAME, PASSWORD))
-
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {json.dumps(response.json(), indent=2)}")
-
-    return response.status_code == 200
-
-
-def test_css_autoprefixer():
-    """Test CSS Autoprefixer"""
-    print("\n=== Test 5: CSS Autoprefixer ===")
-
-    API_URL = f"{BASE_URL}/api/v1/css_autoprefixer"
-
-    data = {
-        "css_code": """
-        .element {
-            transform: rotate(45deg);
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        """
-    }
-
-    response = requests.post(API_URL, json=data, auth=HTTPBasicAuth(USERNAME, PASSWORD))
-
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {json.dumps(response.json(), indent=2)}")
-
-    return response.status_code == 200
-
-
 def test_css_box_shadow_generator():
     """Test CSS Box Shadow Generator"""
-    print("\n=== Test 6: CSS Box Shadow Generator ===")
+    print("\n=== Test 3: CSS Box Shadow Generator ===")
 
     API_URL = f"{BASE_URL}/api/v1/css_box_shadow_generator"
 
@@ -210,30 +113,9 @@ def test_css_box_shadow_generator():
     return response.status_code == 200
 
 
-def test_css_text_shadow_generator():
-    """Test CSS Text Shadow Generator"""
-    print("\n=== Test 7: CSS Text Shadow Generator ===")
-
-    API_URL = f"{BASE_URL}/api/v1/css_text_shadow_generator"
-
-    data = {
-        "h_offset": 2,
-        "v_offset": 2,
-        "blur": 4,
-        "color": "rgba(0, 0, 0, 0.6)"
-    }
-
-    response = requests.post(API_URL, json=data, auth=HTTPBasicAuth(USERNAME, PASSWORD))
-
-    print(f"Status Code: {response.status_code}")
-    print(f"Response: {json.dumps(response.json(), indent=2)}")
-
-    return response.status_code == 200
-
-
 def test_css_transform_generator():
     """Test CSS Transform Generator"""
-    print("\n=== Test 8: CSS Transform Generator ===")
+    print("\n=== Test 4: CSS Transform Generator ===")
 
     API_URL = f"{BASE_URL}/api/v1/css_transform_generator"
 
@@ -255,7 +137,7 @@ def test_css_transform_generator():
 
 def test_css_animation_generator():
     """Test CSS Animation/Keyframes Generator"""
-    print("\n=== Test 9: CSS Animation/Keyframes Generator ===")
+    print("\n=== Test 5: CSS Animation/Keyframes Generator ===")
 
     API_URL = f"{BASE_URL}/api/v1/css_animation_generator"
 
@@ -282,7 +164,7 @@ def test_css_animation_generator():
 
 def test_css_filter_generator():
     """Test CSS Filter Effects Generator"""
-    print("\n=== Test 10: CSS Filter Effects Generator ===")
+    print("\n=== Test 6: CSS Filter Effects Generator ===")
 
     API_URL = f"{BASE_URL}/api/v1/css_filter_generator"
 
@@ -323,12 +205,7 @@ def main():
     results.append(("SVG to CSS background", test_svg_to_css_background()))
     results.append(("CSS Gradient Generator (Linear)", test_css_gradient_generator()))
     results.append(("CSS Gradient Generator (Radial)", test_css_gradient_generator_radial()))
-    results.append(("CSS Color Converter (to RGB)", test_css_color_converter()))
-    results.append(("CSS Color Converter (to HSL)", test_css_color_converter_hsl()))
-    results.append(("CSS Minifier", test_css_minifier()))
-    results.append(("CSS Autoprefixer", test_css_autoprefixer()))
     results.append(("CSS Box Shadow Generator", test_css_box_shadow_generator()))
-    results.append(("CSS Text Shadow Generator", test_css_text_shadow_generator()))
     results.append(("CSS Transform Generator", test_css_transform_generator()))
     results.append(("CSS Animation Generator", test_css_animation_generator()))
     results.append(("CSS Filter Generator", test_css_filter_generator()))

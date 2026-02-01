@@ -66,11 +66,7 @@ Various useful APIs for api2app.ru.
 ### CSS Tools
 - SVG to CSS background-image URL converter
 - CSS gradient generator (linear, radial, conic)
-- CSS color converter (HEX, RGB, RGBA, HSL, HSLA)
-- CSS minifier/compressor
-- CSS autoprefixer (vendor prefixes)
 - CSS box-shadow generator
-- CSS text-shadow generator
 - CSS transform generator (rotate, scale, translate, skew)
 - CSS animation/keyframes generator
 - CSS filter effects generator (blur, brightness, contrast, etc.)
