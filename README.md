@@ -7,69 +7,53 @@ Various useful APIs for api2app.ru.
 
 ## API Endpoints
 
-### Price monitoring
-- Products monitoring (CRUD operations)
-- List product names
-- List cities
-- List shop names
-
-### Logging
-- Log owners management (CRUD operations)
-- Log items management (CRUD operations)
-- Create log record
-
-### YouTube
-- Get video information (yt-dlp)
-- Get video information (pytube)
-- Download video from YouTube
-
-### Google Translate & TTS
-- List Google Translate languages
-- Translate text
-- List Google TTS languages
-- Generate speech from text (gTTS)
-
-### Microsoft Edge TTS
-- List all available voices
-- List voices by language
-- List available languages
-- Generate speech from text (edge-tts)
-
-### Other
-- Password generator
-
-### FactCheckExplorer
-- Fact-checking explorer (https://github.com/GONZOsint/factcheckexplorer)
-
-### YandexDisk
-- Upload and share files on YandexDisk
-
-### YandexGPT
-- YandexCloud Assistant integration (https://yandex.cloud/ru/docs/foundation-models/operations/assistant/create-with-searchindex)
-
-### Coggle
-- Get Coggle diagram node data
-
-### OpenAI Embeddings
-- Create and store embeddings
-- Query stored embeddings
-
-### Video Processing
-- Extract frame from video
-- Replace or add audio track to video
-- Trim video segment
-- Concatenate multiple videos
-
-### Widget
-- Generate widget embed code for chat integration
-
-### CSS Tools
-- SVG to CSS background-image URL converter
-- CSS gradient generator (linear, radial, conic)
-- CSS box-shadow generator
-- CSS transform generator (rotate, scale, translate, skew)
-- CSS animation/keyframes generator
-- CSS filter effects generator (blur, brightness, contrast, etc.)
+| Description | Group | URL |
+|-------------|-------|-----|
+| Users management (CRUD operations) | Users | `/api/v1/users` |
+| Groups management (CRUD operations) | Users groups | `/api/v1/groups` |
+| Products monitoring (CRUD operations) | Price monitoring | `/api/v1/products` |
+| List product names | Price monitoring | `/api/v1/products/list_names` |
+| List cities | Price monitoring | `/api/v1/products/list_cities` |
+| List shop names | Price monitoring | `/api/v1/products/list_shop_names` |
+| Log owners management (CRUD operations) | Logging | `/api/v1/log_owners` |
+| Log items management (CRUD operations) | Logging | `/api/v1/log` |
+| Create log record | Logging | `/api/v1/create_log_record` |
+| Create log record by UUID | Logging | `/api/v1/create_log_record/<owner_uuid>` |
+| Get video information (yt-dlp) | YouTube | `/api/v1/yt_dlp` |
+| Get video information (pytube) | YouTube | `/api/v1/youtube_dl` |
+| Download video from YouTube | YouTube | `/api/v1/youtube_dl/download` |
+| List Google Translate languages | GoogleTransTTS | `/api/v1/googletrans_languages_list` |
+| Translate text | GoogleTransTTS | `/api/v1/googletrans_translate` |
+| List Google TTS languages | GoogleTransTTS | `/api/v1/google_tts_languages_list` |
+| Generate speech from text (gTTS) | GoogleTransTTS | `/api/v1/google_tts` |
+| List all available voices | EdgeTTS | `/api/v1/edge_tts_voices_list` |
+| List voices by language | EdgeTTS | `/api/v1/edge_tts_voices_list_by_lang/<language>` |
+| List available languages | EdgeTTS | `/api/v1/edge_tts_languages_list` |
+| Generate speech from text (edge-tts) | EdgeTTS | `/api/v1/edge_tts/<voice_id>` |
+| Password generator | Other | `/api/v1/password_generate` |
+| Fact-checking explorer | FactCheckExplorer | `/api/v1/fact_check_explorer` |
+| Upload and share files on YandexDisk | YandexDisk | `/api/v1/upload_and_share_yadisk` |
+| YandexCloud Assistant integration | YandexGPT | `/api/v1/yandexgpt_assistant` |
+| Get Coggle diagram node data | Coggle | `/api/v1/coggle_nodes/<diagram_id>/<node_id>` |
+| Create and store embeddings | OpenAI Embeddings | `/api/v1/store_create` |
+| Query stored embeddings | OpenAI Embeddings | `/api/v1/store_question` |
+| Extract frame from video | Video | `/api/v1/extract_video_frame` |
+| Replace or add audio track to video | Video | `/api/v1/replace_video_audio` |
+| Trim video segment | Video | `/api/v1/trim_video` |
+| Concatenate multiple videos | Video | `/api/v1/concatenate_videos` |
+| Create website screenshot | Screenshot | `/api/v1/website_screenshot` |
+| Generate widget embed code for chat integration | Widget | `/api/v1/widget_embed_code` |
+| Generate QR code from text or URL | QR Code Generator | `/api/v1/qr_code_generator` |
+| Extract text from images using OCR | OCR Text Recognition | `/api/v1/ocr_text_recognition` |
+| Convert currencies | Currency Converter | `/api/v1/currency_converter` |
+| Get weather information | Weather API | `/api/v1/weather` |
+| Check text similarity/plagiarism | Plagiarism Checker | `/api/v1/plagiarism_checker` |
+| Convert SVG to CSS background-image data URL | CSS Tools | `/api/v1/svg_to_css_background` |
+| Generate CSS gradient code (linear, radial, conic) | CSS Tools | `/api/v1/css_gradient_generator` |
+| Generate CSS box-shadow code | CSS Tools | `/api/v1/css_box_shadow_generator` |
+| Generate CSS transform properties (rotate, scale, translate, skew) | CSS Tools | `/api/v1/css_transform_generator` |
+| Generate CSS animation and keyframes code | CSS Tools | `/api/v1/css_animation_generator` |
+| Generate CSS filter effects (blur, brightness, contrast, etc.) | CSS Tools | `/api/v1/css_filter_generator` |
 
 ## Installation and management
 
