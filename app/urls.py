@@ -122,6 +122,7 @@ urlpatterns = [
     path('api/v1/css_transform_generator', views.css_transform_generator, name='css_transform_generator'),
     path('api/v1/css_animation_generator', views.css_animation_generator, name='css_animation_generator'),
     path('api/v1/css_filter_generator', views.css_filter_generator, name='css_filter_generator'),
+    path('api/v1/css_triangle_generator', views.css_triangle_generator, name='css_triangle_generator'),
 ]
 
 urlpatterns += [

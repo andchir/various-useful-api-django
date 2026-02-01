@@ -632,3 +632,24 @@ class CssFilterResponseSerializer(serializers.Serializer):
 class CssFilterErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
+
+
+# 7. CSS Triangle Generator
+class CssTriangleRequestSerializer(serializers.Serializer):
+    direction = serializers.ChoiceField(
+        choices=['top', 'right', 'bottom', 'left'],
+        default='top',
+        help_text="Triangle direction"
+    )
+    color = serializers.CharField(default='#B70B0B', help_text="Triangle color")
+    size = serializers.IntegerField(default=30, help_text="Triangle size in pixels")
+
+
+class CssTriangleResponseSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    css_code = serializers.CharField()
+
+
+class CssTriangleErrorSerializer(serializers.Serializer):
+    success = serializers.BooleanField()
+    message = serializers.CharField()
