@@ -2,7 +2,7 @@
 Marketplace serializers for stores, menu items, and shopping carts.
 """
 from rest_framework import serializers
-from main.marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
+from marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
 
 
 class StoreCreateSerializer(serializers.ModelSerializer):

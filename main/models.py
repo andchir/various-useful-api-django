@@ -91,6 +91,3 @@ class LogItemModel(models.Model):
     def __str__(self):
         return "%s-%s" % (self.owner.name, self.id)
 
-
-# Import marketplace models for backward compatibility
-from main.marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel

@@ -26,6 +26,7 @@ from django.views.decorators.cache import cache_page
 from app import settings
 from main import views
 from main.views_screenshot import website_screenshot
+from marketplace import views as marketplace_views
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -125,13 +126,13 @@ urlpatterns = [
     path('api/v1/css_triangle_generator', views.css_triangle_generator, name='css_triangle_generator'),
 
     # Marketplace
-    path('api/v1/store/create', views.store_create, name='store_create'),
-    path('api/v1/store/update/<uuid:write_uuid>', views.store_update, name='store_update'),
-    path('api/v1/store/<uuid:read_uuid>/menu', views.store_menu_list, name='store_menu_list'),
-    path('api/v1/store/<uuid:write_uuid>/menu/create', views.menu_item_create, name='menu_item_create'),
-    path('api/v1/cart/create/<uuid:read_uuid>', views.cart_create, name='cart_create'),
-    path('api/v1/cart/<uuid:cart_uuid>/add', views.cart_add_item, name='cart_add_item'),
-    path('api/v1/cart/<uuid:cart_uuid>/remove', views.cart_remove_item, name='cart_remove_item'),
+    path('api/v1/store/create', marketplace_views.store_create, name='store_create'),
+    path('api/v1/store/update/<uuid:write_uuid>', marketplace_views.store_update, name='store_update'),
+    path('api/v1/store/<uuid:read_uuid>/menu', marketplace_views.store_menu_list, name='store_menu_list'),
+    path('api/v1/store/<uuid:write_uuid>/menu/create', marketplace_views.menu_item_create, name='menu_item_create'),
+    path('api/v1/cart/create/<uuid:read_uuid>', marketplace_views.cart_create, name='cart_create'),
+    path('api/v1/cart/<uuid:cart_uuid>/add', marketplace_views.cart_add_item, name='cart_add_item'),
+    path('api/v1/cart/<uuid:cart_uuid>/remove', marketplace_views.cart_remove_item, name='cart_remove_item'),
 ]
 
 urlpatterns += [

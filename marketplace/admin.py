@@ -2,7 +2,7 @@
 Admin configuration for marketplace models.
 """
 from django.contrib import admin
-from main.marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
+from marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
 
 
 class MenuItemInline(admin.TabularInline):

@@ -3,7 +3,6 @@ from django.contrib.auth.models import User, Group
 from rest_framework import serializers
 
 from main.models import ProductModel, ImageModel, LogOwnerModel, LogItemModel
-from main.marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -655,10 +654,3 @@ class CssTriangleErrorSerializer(serializers.Serializer):
     success = serializers.BooleanField()
     message = serializers.CharField()
 
-
-# Import marketplace serializers for backward compatibility
-from main.marketplace.serializers import (
-    StoreCreateSerializer, StoreResponseSerializer, StorePublicSerializer, StoreUpdateSerializer,
-    MenuItemCreateSerializer, MenuItemResponseSerializer, CartItemSerializer, CartResponseSerializer,
-    AddToCartSerializer, RemoveFromCartSerializer, ErrorResponseSerializer
-)

@@ -63,6 +63,3 @@ class LogItemModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'uuid', 'owner', 'date_created')
     list_display_links = ('id', 'uuid')
 
-
-# Import marketplace admin to register marketplace models
-import main.marketplace.admin

@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'django_advance_thumbnail',
     'main.apps.MainConfig',
+    'marketplace'
 ]
 
 MIDDLEWARE = [

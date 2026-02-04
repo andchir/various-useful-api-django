@@ -7,8 +7,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
 
-from main.marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
-from main.marketplace.serializers import (
+from marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
+from marketplace.serializers import (
     StoreCreateSerializer, StoreResponseSerializer, StoreUpdateSerializer,
     StorePublicSerializer, MenuItemCreateSerializer, MenuItemResponseSerializer,
     CartResponseSerializer, AddToCartSerializer, RemoveFromCartSerializer, ErrorResponseSerializer
