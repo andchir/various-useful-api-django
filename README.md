@@ -55,6 +55,13 @@ Various useful APIs for api2app.ru.
 | Generate CSS animation and keyframes code | CSS Tools | `/api/v1/css_animation_generator` |
 | Generate CSS filter effects (blur, brightness, contrast, etc.) | CSS Tools | `/api/v1/css_filter_generator` |
 | Generate CSS triangle using borders | CSS Tools | `/api/v1/css_triangle_generator` |
+| Create a new store (торговая точка) | Marketplace | `/api/v1/store/create` |
+| Update store details | Marketplace | `/api/v1/store/update/<write_uuid>` |
+| Get store details and menu items | Marketplace | `/api/v1/store/<read_uuid>/menu` |
+| Create menu item (товар) | Marketplace | `/api/v1/store/<write_uuid>/menu/create` |
+| Create shopping cart | Marketplace | `/api/v1/cart/create/<read_uuid>` |
+| Add item to cart | Marketplace | `/api/v1/cart/<cart_uuid>/add` |
+| Remove item from cart | Marketplace | `/api/v1/cart/<cart_uuid>/remove` |
 
 ## Installation and management
 
