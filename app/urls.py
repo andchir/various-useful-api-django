@@ -123,6 +123,15 @@ urlpatterns = [
     path('api/v1/css_animation_generator', views.css_animation_generator, name='css_animation_generator'),
     path('api/v1/css_filter_generator', views.css_filter_generator, name='css_filter_generator'),
     path('api/v1/css_triangle_generator', views.css_triangle_generator, name='css_triangle_generator'),
+
+    # Marketplace
+    path('api/v1/store/create', views.store_create, name='store_create'),
+    path('api/v1/store/update/<uuid:write_uuid>', views.store_update, name='store_update'),
+    path('api/v1/store/<uuid:read_uuid>/menu', views.store_menu_list, name='store_menu_list'),
+    path('api/v1/store/<uuid:write_uuid>/menu/create', views.menu_item_create, name='menu_item_create'),
+    path('api/v1/cart/create/<uuid:read_uuid>', views.cart_create, name='cart_create'),
+    path('api/v1/cart/<uuid:cart_uuid>/add', views.cart_add_item, name='cart_add_item'),
+    path('api/v1/cart/<uuid:cart_uuid>/remove', views.cart_remove_item, name='cart_remove_item'),
 ]
 
 urlpatterns += [
