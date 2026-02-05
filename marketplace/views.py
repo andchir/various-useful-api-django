@@ -5,7 +5,8 @@ import logging
 from rest_framework import permissions, status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
-from drf_spectacular.utils import extend_schema
+from rest_framework import serializers
+from drf_spectacular.utils import extend_schema, inline_serializer
 
 from marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
 from marketplace.serializers import (
@@ -115,13 +116,13 @@ def menu_item_create(request, write_uuid):
 @extend_schema(
     tags=['Marketplace'],
     responses={
-        200: {
-            'type': 'object',
-            'properties': {
-                'store': StorePublicSerializer,
-                'menu_items': {'type': 'array', 'items': MenuItemResponseSerializer}
+        200: inline_serializer(
+            name='StoreMenuListResponse',
+            fields={
+                'store': StorePublicSerializer(),
+                'menu_items': MenuItemResponseSerializer(many=True),
             }
-        },
+        ),
         404: ErrorResponseSerializer,
     },
 )
