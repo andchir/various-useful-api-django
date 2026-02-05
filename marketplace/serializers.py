@@ -1,7 +1,9 @@
 """
 Marketplace serializers for stores, menu items, and shopping carts.
 """
+from decimal import Decimal
 from rest_framework import serializers
+from drf_spectacular.utils import extend_schema_field
 from marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
 
 
@@ -115,7 +117,8 @@ class CartItemSerializer(serializers.ModelSerializer):
         fields = ('id', 'menu_item_uuid', 'menu_item_name', 'menu_item_price', 'quantity', 'total_price')
         read_only_fields = ('id', 'menu_item_name', 'menu_item_price', 'total_price', 'menu_item_uuid')
 
-    def get_total_price(self, obj):
+    @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2))
+    def get_total_price(self, obj) -> Decimal:
         return obj.get_total_price()
 
 
@@ -131,7 +134,8 @@ class CartResponseSerializer(serializers.ModelSerializer):
         fields = ('uuid', 'store_name', 'store_currency', 'date_created', 'date_updated', 'items', 'total_price')
         read_only_fields = fields
 
-    def get_total_price(self, obj):
+    @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2))
+    def get_total_price(self, obj) -> Decimal:
         return obj.get_total_price()
 
 

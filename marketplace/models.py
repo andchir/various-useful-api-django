@@ -1,6 +1,7 @@
 """
 Marketplace models for stores, menu items, and shopping carts.
 """
+from decimal import Decimal
 from django.db import models
 from django_resized import ResizedImageField
 import uuid
@@ -95,10 +96,10 @@ class CartModel(models.Model):
     def __str__(self):
         return f"Cart {self.uuid} - {self.store.name}"
 
-    def get_total_price(self):
+    def get_total_price(self) -> Decimal:
         """Calculate total cart price."""
         total = sum(item.get_total_price() for item in self.cart_items.all())
-        return total
+        return Decimal(str(total))
 
 
 class CartItemModel(models.Model):
@@ -121,6 +122,6 @@ class CartItemModel(models.Model):
     def __str__(self):
         return f"{self.menu_item.name} x {self.quantity}"
 
-    def get_total_price(self):
+    def get_total_price(self) -> Decimal:
         """Calculate line item total price."""
         return self.menu_item.price * self.quantity
