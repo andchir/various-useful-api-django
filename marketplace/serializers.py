@@ -32,20 +32,42 @@ class StoreCreateSerializer(serializers.ModelSerializer):
 
 class StoreResponseSerializer(serializers.ModelSerializer):
     """Serializer for store response with read and write UUIDs."""
+    logo = serializers.SerializerMethodField()
 
     class Meta:
         model = StoreModel
         fields = ('id', 'date_created', 'date_updated', 'name', 'description', 'logo', 'currency', 'read_uuid', 'write_uuid')
         read_only_fields = ('id', 'date_created', 'date_updated', 'read_uuid', 'write_uuid')
 
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_logo(self, obj):
+        """Return full URL for logo image."""
+        if obj.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.logo.url)
+            return obj.logo.url
+        return None
+
 
 class StorePublicSerializer(serializers.ModelSerializer):
     """Serializer for public store view (excludes write_uuid)."""
+    logo = serializers.SerializerMethodField()
 
     class Meta:
         model = StoreModel
         fields = ('id', 'name', 'description', 'logo', 'currency', 'read_uuid')
         read_only_fields = fields
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_logo(self, obj):
+        """Return full URL for logo image."""
+        if obj.logo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.logo.url)
+            return obj.logo.url
+        return None
 
 
 class StoreUpdateSerializer(serializers.ModelSerializer):
@@ -98,11 +120,22 @@ class MenuItemResponseSerializer(serializers.ModelSerializer):
     """Serializer for menu item response."""
     store_name = serializers.CharField(source='store.name', read_only=True)
     store_currency = serializers.CharField(source='store.currency', read_only=True)
+    photo = serializers.SerializerMethodField()
 
     class Meta:
         model = MenuItemModel
         fields = ('id', 'uuid', 'date_created', 'date_updated', 'name', 'description', 'photo', 'price', 'store_name', 'store_currency')
         read_only_fields = ('id', 'uuid', 'date_created', 'date_updated', 'store_name', 'store_currency')
+
+    @extend_schema_field(serializers.CharField(allow_null=True))
+    def get_photo(self, obj):
+        """Return full URL for photo image."""
+        if obj.photo:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.photo.url)
+            return obj.photo.url
+        return None
 
 
 class CartItemSerializer(serializers.ModelSerializer):

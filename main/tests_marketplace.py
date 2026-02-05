@@ -440,3 +440,104 @@ class MarketplaceAPITestCase(TestCase):
         self.assertEqual(len(response_data['items']), 2)
         # 2 * 10.50 + 3 * 25.75 = 21.00 + 77.25 = 98.25
         self.assertEqual(float(response_data['total_price']), 98.25)
+
+    def test_store_logo_returns_full_url(self):
+        """Test that store logo returns full URL with domain"""
+        logo = self.create_test_image()
+        data = {
+            'name': 'Store with Logo',
+            'description': 'Test Description',
+            'currency': 'USD',
+            'logo': logo
+        }
+        response = self.client.post('/api/v1/store/create', data)
+        self.assertEqual(response.status_code, 201)
+
+        response_data = json.loads(response.content)
+        self.assertIsNotNone(response_data.get('logo'))
+        # Full URL should start with http:// or https://
+        logo_url = response_data['logo']
+        self.assertTrue(
+            logo_url.startswith('http://') or logo_url.startswith('https://'),
+            f"Logo URL should be absolute, got: {logo_url}"
+        )
+        # Full URL should contain the domain
+        self.assertIn('testserver', logo_url)
+
+    def test_menu_item_photo_returns_full_url(self):
+        """Test that menu item photo returns full URL with domain"""
+        store = StoreModel.objects.create(
+            name='Test Store',
+            description='Test Description',
+            currency='руб.'
+        )
+
+        photo = self.create_test_image()
+        data = {
+            'name': 'Test Product',
+            'description': 'Test Product Description',
+            'price': '99.99',
+            'photo': photo
+        }
+        response = self.client.post(
+            f'/api/v1/store/{store.write_uuid}/menu/create',
+            data
+        )
+        self.assertEqual(response.status_code, 201)
+
+        response_data = json.loads(response.content)
+        self.assertIsNotNone(response_data.get('photo'))
+        # Full URL should start with http:// or https://
+        photo_url = response_data['photo']
+        self.assertTrue(
+            photo_url.startswith('http://') or photo_url.startswith('https://'),
+            f"Photo URL should be absolute, got: {photo_url}"
+        )
+        # Full URL should contain the domain
+        self.assertIn('testserver', photo_url)
+
+    def test_store_menu_list_images_have_full_urls(self):
+        """Test that store menu list returns full URLs for all images"""
+        logo = self.create_test_image(name='logo.jpg')
+        data = {
+            'name': 'Store with Logo',
+            'description': 'Test Description',
+            'currency': 'USD',
+            'logo': logo
+        }
+        store_response = self.client.post('/api/v1/store/create', data)
+        store_data = json.loads(store_response.content)
+        store = StoreModel.objects.get(read_uuid=store_data['read_uuid'])
+
+        # Create menu item with photo
+        photo = self.create_test_image(name='product.jpg')
+        MenuItemModel.objects.create(
+            store=store,
+            name='Product with Photo',
+            description='Description',
+            price=Decimal('50.00'),
+            photo=photo
+        )
+
+        response = self.client.get(f'/api/v1/store/{store.read_uuid}/menu')
+        self.assertEqual(response.status_code, 200)
+
+        response_data = json.loads(response.content)
+
+        # Check store logo URL
+        if response_data['store'].get('logo'):
+            logo_url = response_data['store']['logo']
+            self.assertTrue(
+                logo_url.startswith('http://') or logo_url.startswith('https://'),
+                f"Store logo URL should be absolute, got: {logo_url}"
+            )
+            self.assertIn('testserver', logo_url)
+
+        # Check menu item photo URL
+        if len(response_data['menu_items']) > 0 and response_data['menu_items'][0].get('photo'):
+            photo_url = response_data['menu_items'][0]['photo']
+            self.assertTrue(
+                photo_url.startswith('http://') or photo_url.startswith('https://'),
+                f"Menu item photo URL should be absolute, got: {photo_url}"
+            )
+            self.assertIn('testserver', photo_url)

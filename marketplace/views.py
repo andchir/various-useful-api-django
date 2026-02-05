@@ -37,7 +37,7 @@ def store_create(request):
         serializer = StoreCreateSerializer(data=request.data)
         if serializer.is_valid():
             store = serializer.save()
-            response_serializer = StoreResponseSerializer(store)
+            response_serializer = StoreResponseSerializer(store, context={'request': request})
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         return Response({'success': False, 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
@@ -71,7 +71,7 @@ def store_update(request, write_uuid):
         serializer = StoreUpdateSerializer(store, data=request.data, partial=True)
         if serializer.is_valid():
             store = serializer.save()
-            response_serializer = StoreResponseSerializer(store)
+            response_serializer = StoreResponseSerializer(store, context={'request': request})
             return Response(response_serializer.data, status=status.HTTP_200_OK)
         return Response({'success': False, 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
@@ -105,7 +105,7 @@ def menu_item_create(request, write_uuid):
         serializer = MenuItemCreateSerializer(data=request.data)
         if serializer.is_valid():
             menu_item = serializer.save(store=store)
-            response_serializer = MenuItemResponseSerializer(menu_item)
+            response_serializer = MenuItemResponseSerializer(menu_item, context={'request': request})
             return Response(response_serializer.data, status=status.HTTP_201_CREATED)
         return Response({'success': False, 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
     except Exception as e:
@@ -140,9 +140,9 @@ def store_menu_list(request, read_uuid):
             return Response({'success': False, 'message': 'Store not found'},
                           status=status.HTTP_404_NOT_FOUND)
 
-        store_serializer = StorePublicSerializer(store)
+        store_serializer = StorePublicSerializer(store, context={'request': request})
         menu_items = MenuItemModel.objects.filter(store=store)
-        menu_items_serializer = MenuItemResponseSerializer(menu_items, many=True)
+        menu_items_serializer = MenuItemResponseSerializer(menu_items, many=True, context={'request': request})
 
         return Response({
             'store': store_serializer.data,
@@ -177,7 +177,7 @@ def cart_create(request, read_uuid):
                           status=status.HTTP_404_NOT_FOUND)
 
         cart = CartModel.objects.create(store=store)
-        response_serializer = CartResponseSerializer(cart)
+        response_serializer = CartResponseSerializer(cart, context={'request': request})
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
     except Exception as e:
         logger.error(f"Cart creation error: {str(e)}")
@@ -232,7 +232,7 @@ def cart_add_item(request, cart_uuid):
             cart_item.quantity = quantity
             cart_item.save()
 
-        response_serializer = CartResponseSerializer(cart)
+        response_serializer = CartResponseSerializer(cart, context={'request': request})
         return Response(response_serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
         logger.error(f"Cart add item error: {str(e)}")
@@ -282,7 +282,7 @@ def cart_remove_item(request, cart_uuid):
             return Response({'success': False, 'message': 'Item not in cart'},
                           status=status.HTTP_404_NOT_FOUND)
 
-        response_serializer = CartResponseSerializer(cart)
+        response_serializer = CartResponseSerializer(cart, context={'request': request})
         return Response(response_serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
         logger.error(f"Cart remove item error: {str(e)}")
