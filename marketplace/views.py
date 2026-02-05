@@ -154,6 +154,7 @@ def store_menu_list(request, read_uuid):
 
 @extend_schema(
     tags=['Marketplace'],
+    request=None,
     responses={
         201: CartResponseSerializer,
         404: ErrorResponseSerializer,
