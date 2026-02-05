@@ -2659,7 +2659,7 @@ def css_triangle_generator(request):
     """
     direction = request.data.get('direction', 'top')
     color = request.data.get('color', '#B70B0B')
-    size = request.data.get('size', 30)
+    size = int(request.data.get('size', 30))
 
     try:
         # Validate direction
