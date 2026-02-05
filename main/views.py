@@ -231,6 +231,30 @@ class LogItemsViewSet(viewsets.ModelViewSet):
 
 @extend_schema(
     tags=['Logging'],
+    request={
+        'application/json': {
+            'type': 'object',
+            'properties': {
+                'uid': {'type': 'string'},
+                'uuid': {'type': 'string'},
+            }
+        }
+    },
+    responses={
+        200: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'}
+            }
+        },
+        404: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'message': {'type': 'string'}
+            }
+        }
+    }
 )
 @api_view(['POST'])
 def create_log_record(request, owner_uuid=None):
@@ -1026,7 +1050,29 @@ def yandexgpt_assistant_action(request):
 
 
 @extend_schema(
-    tags=['Coggle']
+    tags=['Coggle'],
+    parameters=[
+        OpenApiParameter(
+            name='access_token',
+            type=str,
+            location=OpenApiParameter.QUERY,
+            description='Coggle API access token',
+            required=True
+        )
+    ],
+    responses={
+        200: {
+            'type': 'object',
+            'description': 'Node data from Coggle diagram'
+        },
+        420: {
+            'type': 'object',
+            'properties': {
+                'success': {'type': 'boolean'},
+                'detail': {'type': 'string'}
+            }
+        }
+    }
 )
 @api_view(['GET'])
 def coggle_node_action(request, diagram_id, node_id):
