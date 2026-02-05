@@ -7,7 +7,7 @@ from decimal import Decimal
 from django.test import TestCase, Client
 from django.core.files.uploadedfile import SimpleUploadedFile
 from PIL import Image
-from main.models import StoreModel, MenuItemModel, CartModel, CartItemModel
+from marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
 
 
 class MarketplaceAPITestCase(TestCase):
