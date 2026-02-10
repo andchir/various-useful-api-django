@@ -82,11 +82,19 @@ class CartModel(models.Model):
     """
     Shopping cart model.
     """
+    STATUS_CHOICES = (
+        ('created', 'Created'),
+        ('sent', 'Sent'),
+        ('canceled', 'Canceled'),
+        ('completed', 'Completed'),
+    )
+    
     id = models.BigAutoField(primary_key=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     store = models.ForeignKey(StoreModel, related_name='carts', on_delete=models.CASCADE)
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created', verbose_name='Status')
 
     class Meta:
         db_table = 'carts'
@@ -94,7 +102,7 @@ class CartModel(models.Model):
         verbose_name_plural = 'Carts'
 
     def __str__(self):
-        return f"Cart {self.uuid} - {self.store.name}"
+        return f"Cart {self.uuid} - {self.store.name} ({self.get_status_display()})"
 
     def get_total_price(self) -> Decimal:
         """Calculate total cart price."""
