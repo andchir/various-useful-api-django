@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 @extend_schema(
-    tags=['Marketplace'],
+    tags=['Store'],
     request=StoreCreateSerializer,
     responses={
         201: StoreResponseSerializer,
@@ -46,7 +46,7 @@ def store_create(request):
 
 
 @extend_schema(
-    tags=['Marketplace'],
+    tags=['Store'],
     request=StoreUpdateSerializer,
     responses={
         200: StoreResponseSerializer,
@@ -80,7 +80,7 @@ def store_update(request, write_uuid):
 
 
 @extend_schema(
-    tags=['Marketplace'],
+    tags=['Store'],
     request=StoreProductCreateSerializer,
     responses={
         201: MenuItemResponseSerializer,
@@ -114,7 +114,7 @@ def menu_item_create(request, write_uuid):
 
 
 @extend_schema(
-    tags=['Marketplace'],
+    tags=['Store'],
     responses={
         200: inline_serializer(
             name='StoreMenuListResponse',
@@ -154,7 +154,7 @@ def store_menu_list(request, read_uuid):
 
 
 @extend_schema(
-    tags=['Marketplace'],
+    tags=['Store'],
     request=None,
     responses={
         201: CartResponseSerializer,
@@ -185,7 +185,7 @@ def cart_create(request, read_uuid):
 
 
 @extend_schema(
-    tags=['Marketplace'],
+    tags=['Store'],
     request=AddToCartSerializer,
     responses={
         200: CartResponseSerializer,
@@ -240,7 +240,7 @@ def cart_add_item(request, cart_uuid):
 
 
 @extend_schema(
-    tags=['Marketplace'],
+    tags=['Store'],
     request=RemoveFromCartSerializer,
     responses={
         200: CartResponseSerializer,
