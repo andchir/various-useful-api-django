@@ -8,10 +8,10 @@ from rest_framework.response import Response
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema, inline_serializer
 
-from marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
+from marketplace.models import StoreModel, StoreProductModel, CartModel, CartItemModel
 from marketplace.serializers import (
     StoreCreateSerializer, StoreResponseSerializer, StoreUpdateSerializer,
-    StorePublicSerializer, MenuItemCreateSerializer, MenuItemResponseSerializer,
+    StorePublicSerializer, StoreProductCreateSerializer, MenuItemResponseSerializer,
     CartResponseSerializer, AddToCartSerializer, RemoveFromCartSerializer, ErrorResponseSerializer
 )
 
@@ -81,7 +81,7 @@ def store_update(request, write_uuid):
 
 @extend_schema(
     tags=['Marketplace'],
-    request=MenuItemCreateSerializer,
+    request=StoreProductCreateSerializer,
     responses={
         201: MenuItemResponseSerializer,
         400: ErrorResponseSerializer,
@@ -102,7 +102,7 @@ def menu_item_create(request, write_uuid):
             return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
                           status=status.HTTP_404_NOT_FOUND)
 
-        serializer = MenuItemCreateSerializer(data=request.data)
+        serializer = StoreProductCreateSerializer(data=request.data)
         if serializer.is_valid():
             menu_item = serializer.save(store=store)
             response_serializer = MenuItemResponseSerializer(menu_item, context={'request': request})
@@ -141,7 +141,7 @@ def store_menu_list(request, read_uuid):
                           status=status.HTTP_404_NOT_FOUND)
 
         store_serializer = StorePublicSerializer(store, context={'request': request})
-        menu_items = MenuItemModel.objects.filter(store=store)
+        menu_items = StoreProductModel.objects.filter(store=store)
         menu_items_serializer = MenuItemResponseSerializer(menu_items, many=True, context={'request': request})
 
         return Response({
@@ -216,8 +216,8 @@ def cart_add_item(request, cart_uuid):
         quantity = serializer.validated_data['quantity']
 
         try:
-            menu_item = MenuItemModel.objects.get(uuid=menu_item_uuid, store=cart.store)
-        except MenuItemModel.DoesNotExist:
+            menu_item = StoreProductModel.objects.get(uuid=menu_item_uuid, store=cart.store)
+        except StoreProductModel.DoesNotExist:
             return Response({'success': False, 'message': 'Menu item not found or does not belong to this store'},
                           status=status.HTTP_404_NOT_FOUND)
 
@@ -270,8 +270,8 @@ def cart_remove_item(request, cart_uuid):
         menu_item_uuid = serializer.validated_data['menu_item_uuid']
 
         try:
-            menu_item = MenuItemModel.objects.get(uuid=menu_item_uuid)
-        except MenuItemModel.DoesNotExist:
+            menu_item = StoreProductModel.objects.get(uuid=menu_item_uuid)
+        except StoreProductModel.DoesNotExist:
             return Response({'success': False, 'message': 'Menu item not found'},
                           status=status.HTTP_404_NOT_FOUND)
 

@@ -48,7 +48,7 @@ class StoreModel(models.Model):
         return self.name
 
 
-class MenuItemModel(models.Model):
+class StoreProductModel(models.Model):
     """
     Menu item (product catalog) model.
     """
@@ -70,9 +70,9 @@ class MenuItemModel(models.Model):
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
 
     class Meta:
-        db_table = 'menu_items'
-        verbose_name = 'Menu item'
-        verbose_name_plural = 'Menu items'
+        db_table = 'store_product_items'
+        verbose_name = 'Product item'
+        verbose_name_plural = 'product items'
 
     def __str__(self):
         return f"{self.name} - {self.store.name}"
@@ -110,7 +110,7 @@ class CartItemModel(models.Model):
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     cart = models.ForeignKey(CartModel, related_name='cart_items', on_delete=models.CASCADE)
-    menu_item = models.ForeignKey(MenuItemModel, related_name='cart_items', on_delete=models.CASCADE)
+    menu_item = models.ForeignKey(StoreProductModel, related_name='cart_items', on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField(default=1, verbose_name='Quantity')
 
     class Meta:

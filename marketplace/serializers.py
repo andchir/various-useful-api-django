@@ -4,7 +4,7 @@ Marketplace serializers for stores, menu items, and shopping carts.
 from decimal import Decimal
 from rest_framework import serializers
 from drf_spectacular.utils import extend_schema_field
-from marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
+from marketplace.models import StoreModel, StoreProductModel, CartModel, CartItemModel
 
 
 class StoreCreateSerializer(serializers.ModelSerializer):
@@ -93,12 +93,12 @@ class StoreUpdateSerializer(serializers.ModelSerializer):
         return value
 
 
-class MenuItemCreateSerializer(serializers.ModelSerializer):
+class StoreProductCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating a menu item."""
     photo = serializers.ImageField(required=False, allow_null=True)
 
     class Meta:
-        model = MenuItemModel
+        model = StoreProductModel
         fields = ('name', 'description', 'photo', 'price')
 
     def validate_photo(self, value):
@@ -123,7 +123,7 @@ class MenuItemResponseSerializer(serializers.ModelSerializer):
     photo = serializers.SerializerMethodField()
 
     class Meta:
-        model = MenuItemModel
+        model = StoreProductModel
         fields = ('id', 'uuid', 'date_created', 'date_updated', 'name', 'description', 'photo', 'price', 'store_name', 'store_currency')
         read_only_fields = ('id', 'uuid', 'date_created', 'date_updated', 'store_name', 'store_currency')
 

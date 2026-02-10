@@ -2,11 +2,11 @@
 Admin configuration for marketplace models.
 """
 from django.contrib import admin
-from marketplace.models import StoreModel, MenuItemModel, CartModel, CartItemModel
+from marketplace.models import StoreModel, StoreProductModel, CartModel, CartItemModel
 
 
 class MenuItemInline(admin.TabularInline):
-    model = MenuItemModel
+    model = StoreProductModel
     fields = ('id', 'name', 'price', 'uuid', 'date_created')
     readonly_fields = ('id', 'uuid', 'date_created')
     ordering = ('-id',)
@@ -34,7 +34,7 @@ class StoreModelAdmin(admin.ModelAdmin):
     search_fields = ('name', 'read_uuid', 'write_uuid')
 
 
-@admin.register(MenuItemModel)
+@admin.register(StoreProductModel)
 class MenuItemModelAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'price', 'store', 'uuid', 'date_created')
     list_display_links = ('id', 'name')
