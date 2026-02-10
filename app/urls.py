@@ -125,14 +125,14 @@ urlpatterns = [
     path('api/v1/css_filter_generator', views.css_filter_generator, name='css_filter_generator'),
     path('api/v1/css_triangle_generator', views.css_triangle_generator, name='css_triangle_generator'),
 
-    # Marketplace
-    path('api/v1/marketplace/store/create', marketplace_views.store_create, name='marketplace_store_create'),
-    path('api/v1/marketplace/store/update/<uuid:write_uuid>', marketplace_views.store_update, name='marketplace_store_update'),
-    path('api/v1/marketplace/store/<uuid:read_uuid>/menu', marketplace_views.store_menu_list, name='marketplace_store_menu_list'),
-    path('api/v1/marketplace/store/<uuid:write_uuid>/menu/create', marketplace_views.menu_item_create, name='marketplace_menu_item_create'),
-    path('api/v1/marketplace/cart/create/<uuid:read_uuid>', marketplace_views.cart_create, name='marketplace_cart_create'),
-    path('api/v1/marketplace/cart/<uuid:cart_uuid>/add', marketplace_views.cart_add_item, name='marketplace_cart_add_item'),
-    path('api/v1/marketplace/cart/<uuid:cart_uuid>/remove', marketplace_views.cart_remove_item, name='marketplace_cart_remove_item'),
+    # Store
+    path('api/v1/store/store/create', marketplace_views.store_create, name='marketplace_store_create'),
+    path('api/v1/store/store/update/<uuid:write_uuid>', marketplace_views.store_update, name='marketplace_store_update'),
+    path('api/v1/store/store/<uuid:read_uuid>/menu', marketplace_views.store_menu_list, name='marketplace_store_menu_list'),
+    path('api/v1/store/store/<uuid:write_uuid>/menu/create', marketplace_views.menu_item_create, name='marketplace_menu_item_create'),
+    path('api/v1/store/cart/create/<uuid:read_uuid>', marketplace_views.cart_create, name='marketplace_cart_create'),
+    path('api/v1/store/cart/<uuid:cart_uuid>/add', marketplace_views.cart_add_item, name='marketplace_cart_add_item'),
+    path('api/v1/store/cart/<uuid:cart_uuid>/remove', marketplace_views.cart_remove_item, name='marketplace_cart_remove_item'),
 ]
 
 urlpatterns += [
