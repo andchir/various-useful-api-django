@@ -116,6 +116,29 @@ class StoreProductCreateSerializer(serializers.ModelSerializer):
         return value
 
 
+class StoreProductUpdateSerializer(serializers.ModelSerializer):
+    """Serializer for updating a menu item."""
+    photo = serializers.ImageField(required=False, allow_null=True)
+
+    class Meta:
+        model = StoreProductModel
+        fields = ('name', 'description', 'photo', 'price')
+
+    def validate_photo(self, value):
+        """Validate photo file size (max 5MB) and type."""
+        if value:
+            # Check file size (5MB = 5 * 1024 * 1024 bytes)
+            if value.size > 5 * 1024 * 1024:
+                raise serializers.ValidationError("File size must not exceed 5 MB")
+
+            # Check file type
+            allowed_types = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+            if value.content_type not in allowed_types:
+                raise serializers.ValidationError("Allowed formats: JPEG, PNG, GIF, WEBP")
+
+        return value
+
+
 class MenuItemResponseSerializer(serializers.ModelSerializer):
     """Serializer for menu item response."""
     store_name = serializers.CharField(source='store.name', read_only=True)
@@ -161,10 +184,11 @@ class CartResponseSerializer(serializers.ModelSerializer):
     total_price = serializers.SerializerMethodField()
     store_name = serializers.CharField(source='store.name', read_only=True)
     store_currency = serializers.CharField(source='store.currency', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
 
     class Meta:
         model = CartModel
-        fields = ('uuid', 'store_name', 'store_currency', 'date_created', 'date_updated', 'items', 'total_price')
+        fields = ('uuid', 'store_name', 'store_currency', 'date_created', 'date_updated', 'status', 'status_display', 'items', 'total_price')
         read_only_fields = fields
 
     @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2))
@@ -181,6 +205,11 @@ class AddToCartSerializer(serializers.Serializer):
 class RemoveFromCartSerializer(serializers.Serializer):
     """Serializer for removing item from cart."""
     menu_item_uuid = serializers.UUIDField(required=True)
+
+
+class CartStatusUpdateSerializer(serializers.Serializer):
+    """Serializer for updating cart status."""
+    status = serializers.ChoiceField(choices=['created', 'sent', 'canceled', 'completed'])
 
 
 class ErrorResponseSerializer(serializers.Serializer):

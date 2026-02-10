@@ -128,11 +128,16 @@ urlpatterns = [
     # Store
     path('api/v1/store/store/create', marketplace_views.store_create, name='marketplace_store_create'),
     path('api/v1/store/store/update/<uuid:write_uuid>', marketplace_views.store_update, name='marketplace_store_update'),
+    path('api/v1/store/store/delete/<uuid:write_uuid>', marketplace_views.store_delete, name='marketplace_store_delete'),
     path('api/v1/store/store/<uuid:read_uuid>/menu', marketplace_views.store_menu_list, name='marketplace_store_menu_list'),
     path('api/v1/store/store/<uuid:write_uuid>/menu/create', marketplace_views.menu_item_create, name='marketplace_menu_item_create'),
+    path('api/v1/store/store/<uuid:write_uuid>/menu/update/<uuid:product_uuid>', marketplace_views.menu_item_update, name='marketplace_menu_item_update'),
+    path('api/v1/store/store/<uuid:write_uuid>/menu/delete/<uuid:product_uuid>', marketplace_views.menu_item_delete, name='marketplace_menu_item_delete'),
     path('api/v1/store/cart/create/<uuid:read_uuid>', marketplace_views.cart_create, name='marketplace_cart_create'),
     path('api/v1/store/cart/<uuid:cart_uuid>/add', marketplace_views.cart_add_item, name='marketplace_cart_add_item'),
     path('api/v1/store/cart/<uuid:cart_uuid>/remove', marketplace_views.cart_remove_item, name='marketplace_cart_remove_item'),
+    path('api/v1/store/cart/list/<uuid:write_uuid>', marketplace_views.cart_list, name='marketplace_cart_list'),
+    path('api/v1/store/cart/<uuid:cart_uuid>/status', marketplace_views.cart_status_update, name='marketplace_cart_status_update'),
 ]
 
 urlpatterns += [

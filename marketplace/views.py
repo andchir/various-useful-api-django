@@ -2,20 +2,30 @@
 Marketplace views for stores, menu items, and shopping carts.
 """
 import logging
-from rest_framework import permissions, status
+from datetime import datetime
+from rest_framework import permissions, status, pagination
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework import serializers
+from rest_framework.pagination import PageNumberPagination
 from drf_spectacular.utils import extend_schema, inline_serializer
 
 from marketplace.models import StoreModel, StoreProductModel, CartModel, CartItemModel
 from marketplace.serializers import (
     StoreCreateSerializer, StoreResponseSerializer, StoreUpdateSerializer,
-    StorePublicSerializer, StoreProductCreateSerializer, MenuItemResponseSerializer,
-    CartResponseSerializer, AddToCartSerializer, RemoveFromCartSerializer, ErrorResponseSerializer
+    StorePublicSerializer, StoreProductCreateSerializer, StoreProductUpdateSerializer,
+    MenuItemResponseSerializer, CartResponseSerializer, AddToCartSerializer,
+    RemoveFromCartSerializer, CartStatusUpdateSerializer, ErrorResponseSerializer
 )
 
 logger = logging.getLogger(__name__)
+
+
+class CartPagination(PageNumberPagination):
+    """Custom pagination for cart list."""
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 100
 
 
 @extend_schema(
@@ -286,4 +296,234 @@ def cart_remove_item(request, cart_uuid):
         return Response(response_serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
         logger.error(f"Cart remove item error: {str(e)}")
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=['Store'],
+    request=None,
+    responses={
+        200: inline_serializer(
+            name='StoreDeleteResponse',
+            fields={
+                'success': serializers.BooleanField(),
+                'message': serializers.CharField(),
+            }
+        ),
+        404: ErrorResponseSerializer,
+    },
+)
+@api_view(['DELETE'])
+@permission_classes([permissions.AllowAny])
+def store_delete(request, write_uuid):
+    """
+    Delete a store using write_uuid.
+    Requires write_uuid for authorization.
+    """
+    try:
+        try:
+            store = StoreModel.objects.get(write_uuid=write_uuid)
+        except StoreModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        store.delete()
+        return Response({'success': True, 'message': 'Store deleted successfully'},
+                      status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error(f"Store deletion error: {str(e)}")
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=['Store'],
+    request=StoreProductUpdateSerializer,
+    responses={
+        200: MenuItemResponseSerializer,
+        400: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
+@api_view(['PUT'])
+@permission_classes([permissions.AllowAny])
+def menu_item_update(request, write_uuid, product_uuid):
+    """
+    Update a menu item for a store.
+    Requires store's write_uuid for authorization.
+    """
+    try:
+        try:
+            store = StoreModel.objects.get(write_uuid=write_uuid)
+        except StoreModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            menu_item = StoreProductModel.objects.get(uuid=product_uuid, store=store)
+        except StoreProductModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Menu item not found or does not belong to this store'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        serializer = StoreProductUpdateSerializer(menu_item, data=request.data, partial=True)
+        if serializer.is_valid():
+            menu_item = serializer.save()
+            response_serializer = MenuItemResponseSerializer(menu_item, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response({'success': False, 'message': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Menu item update error: {str(e)}")
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=['Store'],
+    request=None,
+    responses={
+        200: inline_serializer(
+            name='ProductDeleteResponse',
+            fields={
+                'success': serializers.BooleanField(),
+                'message': serializers.CharField(),
+            }
+        ),
+        404: ErrorResponseSerializer,
+    },
+)
+@api_view(['DELETE'])
+@permission_classes([permissions.AllowAny])
+def menu_item_delete(request, write_uuid, product_uuid):
+    """
+    Delete a menu item for a store.
+    Requires store's write_uuid for authorization.
+    """
+    try:
+        try:
+            store = StoreModel.objects.get(write_uuid=write_uuid)
+        except StoreModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            menu_item = StoreProductModel.objects.get(uuid=product_uuid, store=store)
+        except StoreProductModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Menu item not found or does not belong to this store'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        menu_item.delete()
+        return Response({'success': True, 'message': 'Menu item deleted successfully'},
+                      status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error(f"Menu item deletion error: {str(e)}")
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=['Store'],
+    request=inline_serializer(
+        name='CartListRequest',
+        fields={
+            'status': serializers.ChoiceField(choices=['created', 'sent', 'canceled', 'completed'], required=False),
+            'date_from': serializers.DateField(required=False),
+            'date_to': serializers.DateField(required=False),
+        }
+    ),
+    responses={
+        200: inline_serializer(
+            name='CartListResponse',
+            fields={
+                'count': serializers.IntegerField(),
+                'next': serializers.URLField(allow_null=True),
+                'previous': serializers.URLField(allow_null=True),
+                'results': CartResponseSerializer(many=True),
+            }
+        ),
+        404: ErrorResponseSerializer,
+    },
+)
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def cart_list(request, write_uuid):
+    """
+    Get list of carts for a store with filtering and pagination.
+    Requires store's write_uuid for authorization.
+    Filter by status, date_from, date_to (optional).
+    """
+    try:
+        try:
+            store = StoreModel.objects.get(write_uuid=write_uuid)
+        except StoreModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        carts = CartModel.objects.filter(store=store)
+
+        # Apply filters
+        status_filter = request.query_params.get('status')
+        if status_filter:
+            carts = carts.filter(status=status_filter)
+
+        date_from = request.query_params.get('date_from')
+        if date_from:
+            try:
+                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+                carts = carts.filter(date_created__date__gte=date_from_obj)
+            except ValueError:
+                return Response({'success': False, 'message': 'Invalid date_from format. Use YYYY-MM-DD'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+        date_to = request.query_params.get('date_to')
+        if date_to:
+            try:
+                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+                carts = carts.filter(date_created__date__lte=date_to_obj)
+            except ValueError:
+                return Response({'success': False, 'message': 'Invalid date_to format. Use YYYY-MM-DD'},
+                              status=status.HTTP_400_BAD_REQUEST)
+
+        # Order by creation date descending
+        carts = carts.order_by('-date_created')
+
+        # Apply pagination
+        paginator = CartPagination()
+        paginated_carts = paginator.paginate_queryset(carts, request)
+        serializer = CartResponseSerializer(paginated_carts, many=True, context={'request': request})
+
+        return paginator.get_paginated_response(serializer.data)
+    except Exception as e:
+        logger.error(f"Cart list error: {str(e)}")
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=['Store'],
+    request=CartStatusUpdateSerializer,
+    responses={
+        200: CartResponseSerializer,
+        400: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
+@api_view(['PUT'])
+@permission_classes([permissions.AllowAny])
+def cart_status_update(request, cart_uuid):
+    """
+    Update cart status by cart uuid.
+    """
+    try:
+        try:
+            cart = CartModel.objects.get(uuid=cart_uuid)
+        except CartModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Cart not found'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        serializer = CartStatusUpdateSerializer(data=request.data)
+        if serializer.is_valid():
+            cart.status = serializer.validated_data['status']
+            cart.save()
+            response_serializer = CartResponseSerializer(cart, context={'request': request})
+            return Response(response_serializer.data, status=status.HTTP_200_OK)
+        return Response({'success': False, 'message': serializer.errors},
+                      status=status.HTTP_400_BAD_REQUEST)
+    except Exception as e:
+        logger.error(f"Cart status update error: {str(e)}")
         return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
