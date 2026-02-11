@@ -188,7 +188,7 @@ class CartResponseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CartModel
-        fields = ('uuid', 'store_name', 'store_currency', 'date_created', 'date_updated', 'status', 'status_display', 'items', 'total_price')
+        fields = ('uuid', 'store_name', 'store_currency', 'date_created', 'date_updated', 'status', 'status_display', 'buyer_name', 'buyer_phone', 'buyer_address', 'items', 'total_price')
         read_only_fields = fields
 
     @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2))
