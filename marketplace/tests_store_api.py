@@ -302,3 +302,61 @@ class CartAPITestCase(TestCase):
         
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertFalse(response.data['success'])
+    
+    def test_cart_clear_items_success(self):
+        """Test successful cart items clearing."""
+        # Create a cart with items
+        product1 = StoreProductModel.objects.create(
+            store=self.store,
+            name='Product 1',
+            price=Decimal('50.00')
+        )
+        product2 = StoreProductModel.objects.create(
+            store=self.store,
+            name='Product 2',
+            price=Decimal('75.00')
+        )
+        
+        cart = CartModel.objects.create(store=self.store, status='created')
+        CartItemModel.objects.create(cart=cart, menu_item=product1, quantity=2)
+        CartItemModel.objects.create(cart=cart, menu_item=product2, quantity=1)
+        
+        # Verify cart has items before clearing
+        self.assertEqual(cart.cart_items.count(), 2)
+        self.assertEqual(cart.get_total_price(), Decimal('175.00'))
+        
+        url = reverse('marketplace_cart_clear_items', kwargs={'cart_uuid': cart.uuid})
+        response = self.client.delete(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['uuid'], str(cart.uuid))
+        self.assertEqual(len(response.data['items']), 0)
+        self.assertEqual(response.data['total_price'], '0.00')
+        
+        # Verify cart items are deleted from database
+        self.assertEqual(cart.cart_items.count(), 0)
+        self.assertEqual(cart.get_total_price(), Decimal('0'))
+    
+    def test_cart_clear_items_empty_cart(self):
+        """Test clearing items from an already empty cart."""
+        cart = CartModel.objects.create(store=self.store, status='created')
+        
+        # Verify cart is empty
+        self.assertEqual(cart.cart_items.count(), 0)
+        
+        url = reverse('marketplace_cart_clear_items', kwargs={'cart_uuid': cart.uuid})
+        response = self.client.delete(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['items']), 0)
+        self.assertEqual(response.data['total_price'], '0.00')
+    
+    def test_cart_clear_items_invalid_cart_uuid(self):
+        """Test clearing items with invalid cart_uuid."""
+        invalid_cart_uuid = uuid.uuid4()
+        url = reverse('marketplace_cart_clear_items', kwargs={'cart_uuid': invalid_cart_uuid})
+        response = self.client.delete(url)
+        
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['message'], 'Cart not found')
