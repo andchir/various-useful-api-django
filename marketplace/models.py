@@ -88,13 +88,16 @@ class CartModel(models.Model):
         ('canceled', 'Canceled'),
         ('completed', 'Completed'),
     )
-    
+
     id = models.BigAutoField(primary_key=True)
     date_created = models.DateTimeField(auto_now_add=True)
     date_updated = models.DateTimeField(auto_now=True)
     store = models.ForeignKey(StoreModel, related_name='carts', on_delete=models.CASCADE)
     uuid = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='created', verbose_name='Status')
+    buyer_name = models.CharField(max_length=200, blank=True, null=True, verbose_name='Buyer name')
+    buyer_phone = models.CharField(max_length=50, blank=True, null=True, verbose_name='Buyer phone')
+    buyer_address = models.TextField(blank=True, null=True, verbose_name='Buyer address')
 
     class Meta:
         db_table = 'carts'

@@ -188,7 +188,7 @@ class CartResponseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CartModel
-        fields = ('uuid', 'store_name', 'store_currency', 'date_created', 'date_updated', 'status', 'status_display', 'items', 'total_price')
+        fields = ('uuid', 'store_name', 'store_currency', 'date_created', 'date_updated', 'status', 'status_display', 'buyer_name', 'buyer_phone', 'buyer_address', 'items', 'total_price')
         read_only_fields = fields
 
     @extend_schema_field(serializers.DecimalField(max_digits=10, decimal_places=2))
@@ -210,6 +210,13 @@ class RemoveFromCartSerializer(serializers.Serializer):
 class CartStatusUpdateSerializer(serializers.Serializer):
     """Serializer for updating cart status."""
     status = serializers.ChoiceField(choices=['created', 'sent', 'canceled', 'completed'])
+
+
+class CheckoutSerializer(serializers.Serializer):
+    """Serializer for checkout (order placement) endpoint."""
+    buyer_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    buyer_phone = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    buyer_address = serializers.CharField(required=False, allow_blank=True)
 
 
 class ErrorResponseSerializer(serializers.Serializer):

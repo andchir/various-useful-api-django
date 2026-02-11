@@ -356,7 +356,173 @@ class CartAPITestCase(TestCase):
         invalid_cart_uuid = uuid.uuid4()
         url = reverse('marketplace_cart_clear_items', kwargs={'cart_uuid': invalid_cart_uuid})
         response = self.client.delete(url)
-        
+
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertFalse(response.data['success'])
         self.assertEqual(response.data['message'], 'Cart not found')
+
+
+class CheckoutOrderAPITestCase(TestCase):
+    """Test case for Checkout Order API endpoint."""
+
+    def setUp(self):
+        """Set up test data."""
+        self.client = APIClient()
+        self.store = StoreModel.objects.create(
+            name='Test Store',
+            description='Test Description',
+            currency='руб.'
+        )
+        self.product1 = StoreProductModel.objects.create(
+            store=self.store,
+            name='Test Product 1',
+            description='Test Product Description 1',
+            price=Decimal('100.00')
+        )
+        self.product2 = StoreProductModel.objects.create(
+            store=self.store,
+            name='Test Product 2',
+            description='Test Product Description 2',
+            price=Decimal('200.00')
+        )
+        self.cart = CartModel.objects.create(
+            store=self.store,
+            status='created'
+        )
+        CartItemModel.objects.create(
+            cart=self.cart,
+            menu_item=self.product1,
+            quantity=2
+        )
+        CartItemModel.objects.create(
+            cart=self.cart,
+            menu_item=self.product2,
+            quantity=1
+        )
+
+    def test_checkout_order_success_with_all_fields(self):
+        """Test successful checkout with all buyer fields provided."""
+        url = reverse('marketplace_checkout_order', kwargs={'cart_uuid': self.cart.uuid})
+        data = {
+            'buyer_name': 'Ivan Petrov',
+            'buyer_phone': '+7 900 123-45-67',
+            'buyer_address': 'Moscow, Red Square, 1'
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'sent')
+        self.assertEqual(response.data['status_display'], 'Sent')
+
+        # Verify cart is updated in database
+        self.cart.refresh_from_db()
+        self.assertEqual(self.cart.status, 'sent')
+        self.assertEqual(self.cart.buyer_name, 'Ivan Petrov')
+        self.assertEqual(self.cart.buyer_phone, '+7 900 123-45-67')
+        self.assertEqual(self.cart.buyer_address, 'Moscow, Red Square, 1')
+
+    def test_checkout_order_success_with_partial_fields(self):
+        """Test successful checkout with only some buyer fields provided."""
+        url = reverse('marketplace_checkout_order', kwargs={'cart_uuid': self.cart.uuid})
+        data = {
+            'buyer_name': 'Ivan Petrov',
+            'buyer_phone': '+7 900 123-45-67'
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'sent')
+
+        # Verify cart is updated in database
+        self.cart.refresh_from_db()
+        self.assertEqual(self.cart.status, 'sent')
+        self.assertEqual(self.cart.buyer_name, 'Ivan Petrov')
+        self.assertEqual(self.cart.buyer_phone, '+7 900 123-45-67')
+        self.assertIsNone(self.cart.buyer_address)
+
+    def test_checkout_order_success_without_buyer_fields(self):
+        """Test successful checkout without any buyer fields (all optional)."""
+        url = reverse('marketplace_checkout_order', kwargs={'cart_uuid': self.cart.uuid})
+        data = {}
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'sent')
+
+        # Verify cart status is updated to 'sent'
+        self.cart.refresh_from_db()
+        self.assertEqual(self.cart.status, 'sent')
+        self.assertIsNone(self.cart.buyer_name)
+        self.assertIsNone(self.cart.buyer_phone)
+        self.assertIsNone(self.cart.buyer_address)
+
+    def test_checkout_order_success_with_empty_strings(self):
+        """Test successful checkout with empty string values."""
+        url = reverse('marketplace_checkout_order', kwargs={'cart_uuid': self.cart.uuid})
+        data = {
+            'buyer_name': '',
+            'buyer_phone': '',
+            'buyer_address': ''
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['status'], 'sent')
+
+        # Verify cart is updated in database with None values (empty strings are converted)
+        self.cart.refresh_from_db()
+        self.assertEqual(self.cart.status, 'sent')
+
+    def test_checkout_order_cart_not_found(self):
+        """Test checkout with invalid cart_uuid."""
+        invalid_cart_uuid = uuid.uuid4()
+        url = reverse('marketplace_checkout_order', kwargs={'cart_uuid': invalid_cart_uuid})
+        data = {
+            'buyer_name': 'Ivan Petrov'
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['message'], 'Cart not found')
+
+    def test_checkout_order_changes_status_to_sent(self):
+        """Test that checkout always changes cart status to 'sent'."""
+        # Create cart with different initial status
+        cart = CartModel.objects.create(
+            store=self.store,
+            status='created'
+        )
+        CartItemModel.objects.create(
+            cart=cart,
+            menu_item=self.product1,
+            quantity=1
+        )
+
+        url = reverse('marketplace_checkout_order', kwargs={'cart_uuid': cart.uuid})
+        data = {'buyer_name': 'Test User'}
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        cart.refresh_from_db()
+        self.assertEqual(cart.status, 'sent')
+
+    def test_checkout_order_preserves_cart_items(self):
+        """Test that checkout does not modify cart items."""
+        initial_items_count = self.cart.cart_items.count()
+        initial_total_price = self.cart.get_total_price()
+
+        url = reverse('marketplace_checkout_order', kwargs={'cart_uuid': self.cart.uuid})
+        data = {'buyer_name': 'Test User'}
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.cart.refresh_from_db()
+
+        # Verify items are preserved
+        self.assertEqual(self.cart.cart_items.count(), initial_items_count)
+        self.assertEqual(self.cart.get_total_price(), initial_total_price)
+
+        # Verify items in response
+        self.assertEqual(len(response.data['items']), initial_items_count)
+        self.assertEqual(Decimal(response.data['total_price']), initial_total_price)
