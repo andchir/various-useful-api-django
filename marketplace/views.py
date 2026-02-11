@@ -15,7 +15,8 @@ from marketplace.serializers import (
     StoreCreateSerializer, StoreResponseSerializer, StoreUpdateSerializer,
     StorePublicSerializer, StoreProductCreateSerializer, StoreProductUpdateSerializer,
     MenuItemResponseSerializer, CartResponseSerializer, AddToCartSerializer,
-    RemoveFromCartSerializer, CartStatusUpdateSerializer, ErrorResponseSerializer
+    RemoveFromCartSerializer, CartStatusUpdateSerializer, CheckoutSerializer,
+    ErrorResponseSerializer
 )
 
 logger = logging.getLogger(__name__)
@@ -553,11 +554,56 @@ def cart_clear_items(request, cart_uuid):
 
         # Delete all cart items
         deleted_count, _ = CartItemModel.objects.filter(cart=cart).delete()
-        
+
         logger.info(f"Cart {cart_uuid} cleared: {deleted_count} items deleted")
-        
+
         response_serializer = CartResponseSerializer(cart, context={'request': request})
         return Response(response_serializer.data, status=status.HTTP_200_OK)
     except Exception as e:
         logger.error(f"Cart clear items error: {str(e)}")
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=['Store'],
+    request=CheckoutSerializer,
+    responses={
+        200: CartResponseSerializer,
+        400: ErrorResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
+@api_view(['POST'])
+@permission_classes([permissions.AllowAny])
+def checkout_order(request, cart_uuid):
+    """
+    Checkout order by cart UUID.
+    Updates cart with buyer information (optional fields) and sets status to 'sent'.
+    Returns updated cart with buyer information.
+    """
+    try:
+        try:
+            cart = CartModel.objects.get(uuid=cart_uuid)
+        except CartModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Cart not found'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        serializer = CheckoutSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response({'success': False, 'message': serializer.errors},
+                          status=status.HTTP_400_BAD_REQUEST)
+
+        # Update cart with buyer information
+        cart.buyer_name = serializer.validated_data.get('buyer_name', None)
+        cart.buyer_phone = serializer.validated_data.get('buyer_phone', None)
+        cart.buyer_address = serializer.validated_data.get('buyer_address', None)
+        cart.status = 'sent'
+        cart.save()
+
+        logger.info(f"Cart {cart_uuid} checked out with status 'sent'")
+
+        response_serializer = CartResponseSerializer(cart, context={'request': request})
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error(f"Checkout order error: {str(e)}")
         return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)

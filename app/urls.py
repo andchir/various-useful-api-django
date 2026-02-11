@@ -139,6 +139,7 @@ urlpatterns = [
     path('api/v1/store/cart/list/<uuid:write_uuid>', marketplace_views.cart_list, name='marketplace_cart_list'),
     path('api/v1/store/cart/<uuid:cart_uuid>/status', marketplace_views.cart_status_update, name='marketplace_cart_status_update'),
     path('api/v1/store/cart/<uuid:cart_uuid>/clear', marketplace_views.cart_clear_items, name='marketplace_cart_clear_items'),
+    path('api/v1/store/cart/<uuid:cart_uuid>/checkout', marketplace_views.checkout_order, name='marketplace_checkout_order'),
 ]
 
 urlpatterns += [

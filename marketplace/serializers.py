@@ -212,6 +212,13 @@ class CartStatusUpdateSerializer(serializers.Serializer):
     status = serializers.ChoiceField(choices=['created', 'sent', 'canceled', 'completed'])
 
 
+class CheckoutSerializer(serializers.Serializer):
+    """Serializer for checkout (order placement) endpoint."""
+    buyer_name = serializers.CharField(required=False, allow_blank=True, max_length=200)
+    buyer_phone = serializers.CharField(required=False, allow_blank=True, max_length=50)
+    buyer_address = serializers.CharField(required=False, allow_blank=True)
+
+
 class ErrorResponseSerializer(serializers.Serializer):
     """Generic error response serializer."""
     success = serializers.BooleanField(default=False)

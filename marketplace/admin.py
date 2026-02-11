@@ -45,12 +45,13 @@ class MenuItemModelAdmin(admin.ModelAdmin):
 
 @admin.register(CartModel)
 class CartModelAdmin(admin.ModelAdmin):
-    list_display = ('id', 'uuid', 'store', 'date_created', 'get_total_price')
+    list_display = ('id', 'uuid', 'store', 'status', 'buyer_name', 'buyer_phone', 'date_created', 'get_total_price')
     list_display_links = ('id', 'uuid')
     readonly_fields = ('uuid', 'date_created', 'date_updated')
     inlines = [CartItemInline]
-    search_fields = ('uuid',)
-    list_filter = ('store',)
+    search_fields = ('uuid', 'buyer_name', 'buyer_phone')
+    list_filter = ('store', 'status')
+    fields = ('uuid', 'store', 'status', 'buyer_name', 'buyer_phone', 'buyer_address', 'date_created', 'date_updated')
 
 
 @admin.register(CartItemModel)
