@@ -527,3 +527,37 @@ def cart_status_update(request, cart_uuid):
     except Exception as e:
         logger.error(f"Cart status update error: {str(e)}")
         return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=['Store'],
+    request=None,
+    responses={
+        200: CartResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
+@api_view(['DELETE'])
+@permission_classes([permissions.AllowAny])
+def cart_clear_items(request, cart_uuid):
+    """
+    Delete all items from cart by cart uuid.
+    Returns empty cart with total price 0.
+    """
+    try:
+        try:
+            cart = CartModel.objects.get(uuid=cart_uuid)
+        except CartModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Cart not found'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        # Delete all cart items
+        deleted_count, _ = CartItemModel.objects.filter(cart=cart).delete()
+        
+        logger.info(f"Cart {cart_uuid} cleared: {deleted_count} items deleted")
+        
+        response_serializer = CartResponseSerializer(cart, context={'request': request})
+        return Response(response_serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error(f"Cart clear items error: {str(e)}")
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
