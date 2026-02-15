@@ -131,6 +131,7 @@ urlpatterns = [
     path('api/v1/store/store/update/<uuid:write_uuid>', marketplace_views.store_update, name='marketplace_store_update'),
     path('api/v1/store/store/delete/<uuid:write_uuid>', marketplace_views.store_delete, name='marketplace_store_delete'),
     path('api/v1/store/store/<uuid:read_uuid>/menu', marketplace_views.store_menu_list, name='marketplace_store_menu_list'),
+    path('api/v1/store/store/<uuid:read_uuid>/menu/<uuid:product_uuid>', marketplace_views.menu_item_detail, name='marketplace_menu_item_detail'),
     path('api/v1/store/store/<uuid:write_uuid>/menu/create', marketplace_views.menu_item_create, name='marketplace_menu_item_create'),
     path('api/v1/store/store/<uuid:write_uuid>/menu/update/<uuid:product_uuid>', marketplace_views.menu_item_update, name='marketplace_menu_item_update'),
     path('api/v1/store/store/<uuid:write_uuid>/menu/delete/<uuid:product_uuid>', marketplace_views.menu_item_delete, name='marketplace_menu_item_delete'),

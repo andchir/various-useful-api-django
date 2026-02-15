@@ -166,6 +166,40 @@ def store_menu_list(request, read_uuid):
 
 @extend_schema(
     tags=['Store'],
+    responses={
+        200: MenuItemResponseSerializer,
+        404: ErrorResponseSerializer,
+    },
+)
+@api_view(['GET'])
+@permission_classes([permissions.AllowAny])
+def menu_item_detail(request, read_uuid, product_uuid):
+    """
+    Get single menu item details by product UUID using store's read_uuid.
+    Returns menu item information.
+    """
+    try:
+        try:
+            store = StoreModel.objects.get(read_uuid=read_uuid)
+        except StoreModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Store not found'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            menu_item = StoreProductModel.objects.get(uuid=product_uuid, store=store)
+        except StoreProductModel.DoesNotExist:
+            return Response({'success': False, 'message': 'Menu item not found or does not belong to this store'},
+                          status=status.HTTP_404_NOT_FOUND)
+
+        serializer = MenuItemResponseSerializer(menu_item, context={'request': request})
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    except Exception as e:
+        logger.error(f"Menu item detail error: {str(e)}")
+        return Response({'success': False, 'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+
+@extend_schema(
+    tags=['Store'],
     request=None,
     responses={
         201: CartResponseSerializer,
