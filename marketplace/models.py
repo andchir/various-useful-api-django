@@ -25,7 +25,6 @@ class StoreModel(models.Model):
     logo = ResizedImageField(
         size=[800, 800],
         scale=1,
-        force_format='PNG',
         upload_to='stores/logos/%Y/%m/%d/',
         blank=True,
         null=True,
@@ -60,9 +59,8 @@ class StoreProductModel(models.Model):
     name = models.CharField(max_length=200, verbose_name='Product name')
     description = models.TextField(blank=True, null=True, verbose_name='Product description')
     photo = ResizedImageField(
-        size=[1920, 1080],
+        size=[800, 800],
         scale=1,
-        force_format='PNG',
         upload_to='stores/menu_items/%Y/%m/%d/',
         blank=True,
         null=True,
