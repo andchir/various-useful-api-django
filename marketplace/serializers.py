@@ -92,6 +92,17 @@ class StoreUpdateSerializer(serializers.ModelSerializer):
 
         return value
 
+    def update(self, instance, validated_data):
+        """
+        Update store instance, preserving existing logo if None is sent.
+        Only update logo when a new image file is explicitly provided.
+        """
+        # If logo is None or not provided, remove it from validated_data to preserve existing logo
+        if 'logo' in validated_data and validated_data['logo'] is None:
+            validated_data.pop('logo')
+
+        return super().update(instance, validated_data)
+
 
 class StoreProductCreateSerializer(serializers.ModelSerializer):
     """Serializer for creating a menu item."""
@@ -137,6 +148,17 @@ class StoreProductUpdateSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError("Allowed formats: JPEG, PNG, GIF, WEBP")
 
         return value
+
+    def update(self, instance, validated_data):
+        """
+        Update menu item instance, preserving existing photo if None is sent.
+        Only update photo when a new image file is explicitly provided.
+        """
+        # If photo is None or not provided, remove it from validated_data to preserve existing photo
+        if 'photo' in validated_data and validated_data['photo'] is None:
+            validated_data.pop('photo')
+
+        return super().update(instance, validated_data)
 
 
 class MenuItemResponseSerializer(serializers.ModelSerializer):
