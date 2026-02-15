@@ -154,9 +154,77 @@ class MenuItemAPITestCase(TestCase):
             'product_uuid': invalid_product_uuid
         })
         response = self.client.delete(url)
-        
+
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
         self.assertFalse(response.data['success'])
+
+    def test_menu_item_detail_success(self):
+        """Test successful menu item detail retrieval."""
+        url = reverse('marketplace_menu_item_detail', kwargs={
+            'read_uuid': self.store.read_uuid,
+            'product_uuid': self.product.uuid
+        })
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['uuid'], str(self.product.uuid))
+        self.assertEqual(response.data['name'], 'Test Product')
+        self.assertEqual(response.data['description'], 'Test Product Description')
+        self.assertEqual(Decimal(response.data['price']), Decimal('100.50'))
+        self.assertEqual(response.data['store_name'], 'Test Store')
+        self.assertEqual(response.data['store_currency'], 'руб.')
+
+    def test_menu_item_detail_invalid_read_uuid(self):
+        """Test menu item detail with invalid read_uuid."""
+        invalid_read_uuid = uuid.uuid4()
+        url = reverse('marketplace_menu_item_detail', kwargs={
+            'read_uuid': invalid_read_uuid,
+            'product_uuid': self.product.uuid
+        })
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['message'], 'Store not found')
+
+    def test_menu_item_detail_invalid_product_uuid(self):
+        """Test menu item detail with invalid product_uuid."""
+        invalid_product_uuid = uuid.uuid4()
+        url = reverse('marketplace_menu_item_detail', kwargs={
+            'read_uuid': self.store.read_uuid,
+            'product_uuid': invalid_product_uuid
+        })
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['message'], 'Menu item not found or does not belong to this store')
+
+    def test_menu_item_detail_product_from_different_store(self):
+        """Test menu item detail with product from a different store."""
+        # Create another store with a product
+        other_store = StoreModel.objects.create(
+            name='Other Store',
+            description='Other Description',
+            currency='USD'
+        )
+        other_product = StoreProductModel.objects.create(
+            store=other_store,
+            name='Other Product',
+            description='Other Product Description',
+            price=Decimal('200.00')
+        )
+
+        # Try to access other_product using self.store's read_uuid
+        url = reverse('marketplace_menu_item_detail', kwargs={
+            'read_uuid': self.store.read_uuid,
+            'product_uuid': other_product.uuid
+        })
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertFalse(response.data['success'])
+        self.assertEqual(response.data['message'], 'Menu item not found or does not belong to this store')
 
 
 class CartAPITestCase(TestCase):
