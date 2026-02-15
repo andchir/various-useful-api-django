@@ -27,6 +27,7 @@ from app import settings
 from main import views
 from main.views_screenshot import website_screenshot
 from marketplace import views as marketplace_views
+from github_tasks import views as github_tasks_views
 
 schema_view = get_schema_view(
    openapi.Info(
@@ -140,6 +141,12 @@ urlpatterns = [
     path('api/v1/store/cart/<uuid:cart_uuid>/status', marketplace_views.cart_status_update, name='marketplace_cart_status_update'),
     path('api/v1/store/cart/<uuid:cart_uuid>/clear', marketplace_views.cart_clear_items, name='marketplace_cart_clear_items'),
     path('api/v1/store/cart/<uuid:cart_uuid>/checkout', marketplace_views.checkout_order, name='marketplace_checkout_order'),
+
+    # GitHub Tasks
+    path('api/v1/github_tasks/create', github_tasks_views.task_create, name='github_task_create'),
+    path('api/v1/github_tasks/<uuid:task_uuid>', github_tasks_views.task_detail, name='github_task_detail'),
+    path('api/v1/github_tasks', github_tasks_views.task_list, name='github_task_list'),
+    path('api/v1/github_tasks/<uuid:task_uuid>/status', github_tasks_views.task_status_update, name='github_task_status_update'),
 ]
 
 urlpatterns += [
