@@ -35,7 +35,7 @@ from django.core.files.uploadedfile import TemporaryUploadedFile
 from yandex_cloud_ml_sdk import YCloudML
 
 from app import settings
-from main.embeddings import create_and_store_embeddings, get_answer_with_embeddings
+from main.embeddings import create_and_store_embeddings, create_docs_embeddings, get_answer_with_embeddings
 from main.filters import IsOwnerFilterBackend, IsPublishedFilterBackend
 from main.lib import edge_tts_find_voice, edge_tts_create_audio, delete_old_files, edge_tts_locales, \
     upload_and_share_yadisk, is_internal_url, get_safe_filename
@@ -1114,10 +1114,28 @@ def coggle_node_action(request, diagram_id, node_id):
             'properties': {
                 'openai_api_url_base': {'type': 'string'},
                 'openai_model_name': {'type': 'string'},
-                'knowledge_content': {'type': 'text'}
-                }
+                'knowledge_content': {'type': 'string'},
+                'mode': {
+                    'type': 'string',
+                    'enum': ['docs', 'simple'],
+                    'description': (
+                        'Chunking mode (default: "docs"). '
+                        '"docs" — header-aware split for Markdown documentation: '
+                        'preserves code blocks, adds breadcrumb path to each chunk. '
+                        '"simple" — plain recursive split (chunk_size=1000).'
+                    ),
+                },
+                'chunk_size': {
+                    'type': 'integer',
+                    'description': 'Max chunk size in characters (docs mode only, default 1500).',
+                },
+                'chunk_overlap': {
+                    'type': 'integer',
+                    'description': 'Overlap between chunks in characters (docs mode only, default 150).',
+                },
             }
-        },
+        }
+    },
     parameters=[
         OpenApiParameter(
             name='X-OpenAI-Api-Key',
@@ -1138,6 +1156,7 @@ def embeddings_create_store_action(request):
     openai_api_url_base = request.data.get('openai_api_url_base')
     openai_model_name = request.data.get('openai_model_name')
     knowledge_content = request.data.get('knowledge_content')
+    mode = request.data.get('mode', 'docs')
 
     if api_key is None:
         return HttpResponse(json.dumps({'success': False, 'detail': 'API key is required.'}),
@@ -1147,6 +1166,10 @@ def embeddings_create_store_action(request):
         return HttpResponse(json.dumps({'success': False, 'detail': 'Content is required.'}),
                             content_type='application/json', status=420)
 
+    if mode not in ('docs', 'simple'):
+        return HttpResponse(json.dumps({'success': False, 'detail': 'mode must be "docs" or "simple".'}),
+                            content_type='application/json', status=420)
+
     if not openai_api_url_base:
         openai_api_url_base = 'https://api.openai.com/v1/'
 
@@ -1154,12 +1177,27 @@ def embeddings_create_store_action(request):
         openai_model_name = 'text-embedding-ada-002'
 
     try:
-        store_uuid = create_and_store_embeddings(
-            knowledge_content,
-            model=openai_model_name,
-            api_key=api_key,
-            api_url_base=openai_api_url_base
-        )
+        if mode == 'simple':
+            store_uuid = create_and_store_embeddings(
+                knowledge_content,
+                model=openai_model_name,
+                api_key=api_key,
+                api_url_base=openai_api_url_base,
+            )
+        else:
+            chunk_size = int(request.data.get('chunk_size', 1500))
+            chunk_overlap = int(request.data.get('chunk_overlap', 150))
+            store_uuid = create_docs_embeddings(
+                knowledge_content,
+                model=openai_model_name,
+                api_key=api_key,
+                api_url_base=openai_api_url_base,
+                chunk_size=chunk_size,
+                chunk_overlap=chunk_overlap,
+            )
+    except (TypeError, ValueError) as e:
+        return HttpResponse(json.dumps({'success': False, 'detail': str(e)}),
+                            content_type='application/json', status=420)
     except Exception as e:
         error_message = str(e)
         return HttpResponse(json.dumps({'success': False, 'detail': error_message}),

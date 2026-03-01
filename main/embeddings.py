@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import sys
 import uuid
 
@@ -9,7 +10,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
 from langchain.chains import create_retrieval_chain
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter, MarkdownHeaderTextSplitter
 from openai import AuthenticationError, RateLimitError, APIError
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -96,6 +97,141 @@ def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedd
     return response.get('answer')
 
 
+_CODE_BLOCK_RE = re.compile(r'(```[\s\S]*?```|`[^`\n]+`)', re.MULTILINE)
+
+
+def _split_preserving_code_blocks(text: str, chunk_size: int, chunk_overlap: int,
+                                   splitter: RecursiveCharacterTextSplitter) -> list[str]:
+    """Split text into chunks without ever breaking code blocks."""
+    if len(text) <= chunk_size or not _CODE_BLOCK_RE.search(text):
+        return splitter.split_text(text)
+
+    # Tokenise: alternate between prose segments and code blocks
+    tokens = _CODE_BLOCK_RE.split(text)   # [prose, code, prose, code, ...]
+    code_blocks = _CODE_BLOCK_RE.findall(text)
+
+    result: list[str] = []
+    buffer = ''
+
+    for i, prose in enumerate(tokens):
+        if len(buffer) + len(prose) <= chunk_size:
+            buffer += prose
+        else:
+            if buffer.strip():
+                result.extend(splitter.split_text(buffer))
+            buffer = prose
+
+        if i < len(code_blocks):
+            code = code_blocks[i]
+            if len(buffer) + len(code) <= chunk_size * 1.5:
+                buffer += code
+            else:
+                if buffer.strip():
+                    result.extend(splitter.split_text(buffer))
+                result.append(code)   # code block becomes its own chunk even if large
+                buffer = ''
+
+    if buffer.strip():
+        result.extend(splitter.split_text(buffer))
+
+    return result or [text]
+
+
+def _split_markdown_docs(source_text: str, chunk_size: int = 1500,
+                         chunk_overlap: int = 150) -> list[str]:
+    """
+    Smart chunking for Markdown documentation:
+
+    1. Split by headers (##/###/####) — each section gets full breadcrumb path.
+    2. Code blocks are never split.
+    3. Sections that fit in chunk_size become one chunk.
+    4. Oversized sections are split by paragraphs/lines while protecting code blocks.
+    5. The breadcrumb is prepended to every chunk so the LLM always knows the context.
+    """
+    headers_to_split_on = [
+        ('#', 'h1'),
+        ('##', 'h2'),
+        ('###', 'h3'),
+        ('####', 'h4'),
+    ]
+    md_splitter = MarkdownHeaderTextSplitter(
+        headers_to_split_on=headers_to_split_on,
+        strip_headers=False,
+    )
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=chunk_overlap,
+        separators=['\n\n', '\n', ' '],
+    )
+
+    header_docs = md_splitter.split_text(source_text)
+
+    final_chunks: list[str] = []
+    for doc in header_docs:
+        content = doc.page_content.strip()
+        if not content:
+            continue
+
+        # Build breadcrumb from header metadata (h1 > h2 > h3 > h4)
+        breadcrumb_parts = [
+            doc.metadata[k]
+            for k in ('h1', 'h2', 'h3', 'h4')
+            if doc.metadata.get(k)
+        ]
+        breadcrumb = ' > '.join(breadcrumb_parts)
+        prefix = f'[{breadcrumb}]\n\n' if breadcrumb else ''
+
+        if len(prefix) + len(content) <= chunk_size:
+            final_chunks.append(prefix + content)
+        else:
+            sub_chunks = _split_preserving_code_blocks(content, chunk_size, chunk_overlap, text_splitter)
+            for chunk in sub_chunks:
+                final_chunks.append(prefix + chunk)
+
+    return final_chunks
+
+
+def create_docs_embeddings(source_text: str, model: str = 'text-embedding-ada-002',
+                           api_key: str = None, api_url_base: str = None,
+                           hf_api_token: str = None, hf_model: str = DEFAULT_HF_MODEL,
+                           chunk_size: int = 1500, chunk_overlap: int = 150) -> str:
+    """
+    Docs mode: creates a vector store optimised for Markdown documentation.
+
+    Differences from create_and_store_embeddings:
+    - Header-aware chunking: sections are never split mid-heading.
+    - Code blocks are treated as atomic units and never broken across chunks.
+    - Each chunk is prefixed with the breadcrumb path (h1 > h2 > h3) so
+      the retriever can find the right section even for context-free queries.
+
+    Returns the UUID of the saved vector store.
+    """
+    file_id = str(uuid.uuid4())
+    storage_path = os.path.join(VECTOR_STORAGE_PATH, file_id)
+
+    docs = _split_markdown_docs(source_text, chunk_size, chunk_overlap)
+    logger.info('Docs mode: %d chunks created from markdown source', len(docs))
+
+    try:
+        embeddings_model = _build_embeddings_model(model, api_key, api_url_base, hf_api_token, hf_model)
+        vector_store = FAISS.from_texts(docs, embeddings_model)
+        vector_store.save_local(storage_path)
+    except AuthenticationError as e:
+        logger.exception(e)
+        raise ValueError('Invalid API key or authentication error.') from e
+    except RateLimitError as e:
+        logger.exception(e)
+        raise RuntimeError('API rate limit exceeded, please try again later') from e
+    except APIError as e:
+        logger.exception(e)
+        raise RuntimeError('OpenAI server error.') from e
+    except Exception as e:
+        logger.exception(e)
+        raise RuntimeError('Failed to create vector store.') from e
+
+    return file_id
+
+
 if __name__ == '__main__':
     knowledge_base_text = """
     История компании "ТехноСферы".
@@ -113,17 +249,97 @@ if __name__ == '__main__':
     MODEL_NAME = 'gpt-3.5-turbo'
     HF_API_TOKEN = ''
 
-    # print("--- Создание базы знаний ---")
+    # ── Обычный режим ──────────────────────────────────────────────────────────
     # saved_uuid = create_and_store_embeddings(
     #     knowledge_base_text,
     #     api_key=API_KEY,
     #     api_url_base=API_URL_BASE,
     #     hf_api_token=HF_API_TOKEN
     # )
-    # print(f"База знаний сохранена с UUID: {saved_uuid}\n")
     saved_uuid = 'e20c695e-fdd5-4444-b4ec-be701d613b45'
 
-    print("--- Получение ответа из базы знаний ---")
+    # ── Docs режим (умная разбивка для MD-документации) ───────────────────────
+    docs_md = """
+# Authentication
+
+All requests require a Bearer token in the `Authorization` header.
+
+## Getting a token
+
+Send a POST request to `/auth/token`:
+
+```bash
+curl -X POST https://api.example.com/auth/token \\
+  -H "Content-Type: application/json" \\
+  -d '{"client_id": "YOUR_ID", "client_secret": "YOUR_SECRET"}'
+```
+
+Response:
+
+```json
+{
+  "access_token": "eyJ...",
+  "expires_in": 3600
+}
+```
+
+## Refreshing a token
+
+When the token expires, call `/auth/refresh` with your `refresh_token`.
+
+```python
+import requests
+
+resp = requests.post(
+    "https://api.example.com/auth/refresh",
+    json={"refresh_token": "<token>"},
+)
+new_token = resp.json()["access_token"]
+```
+
+# Endpoints
+
+## Users
+
+### GET /users
+
+Returns a paginated list of users.
+
+| Parameter | Type   | Description          |
+|-----------|--------|----------------------|
+| page      | int    | Page number (1-based)|
+| per_page  | int    | Items per page (max 100)|
+
+```bash
+curl https://api.example.com/users?page=1&per_page=20 \\
+  -H "Authorization: Bearer $TOKEN"
+```
+"""
+
+    # Посмотреть на чанки без создания индекса:
+    chunks = _split_markdown_docs(docs_md)
+    print(f"--- Docs mode: {len(chunks)} chunks ---")
+    for i, c in enumerate(chunks, 1):
+        print(f"\n[chunk {i}]\n{c}")
+
+    # Создать реальный индекс:
+    # docs_uuid = create_docs_embeddings(
+    #     docs_md,
+    #     api_key=API_KEY,
+    #     api_url_base=API_URL_BASE,
+    # )
+    # print(f"Docs knowledge base UUID: {docs_uuid}")
+    #
+    # answer = get_answer_with_embeddings(
+    #     "How do I refresh an expired token?",
+    #     docs_uuid,
+    #     model=MODEL_NAME,
+    #     api_key=API_KEY,
+    #     api_url_base=API_URL_BASE,
+    # )
+    # print(f"Answer: {answer}")
+
+    print("\n--- Обычный режим ---")
     user_question = "Кто основал компанию ТехноСфера и в каком году?"
     answer = get_answer_with_embeddings(
         user_question,
@@ -134,5 +350,5 @@ if __name__ == '__main__':
         hf_api_token=HF_API_TOKEN
     )
 
-    print(f"❓ Вопрос: {user_question}")
-    print(f"🤖 Ответ: {answer}")
+    print(f"Вопрос: {user_question}")
+    print(f"Ответ: {answer}")
