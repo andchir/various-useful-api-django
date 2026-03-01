@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 import uuid
@@ -7,19 +8,37 @@ from langchain_community.vectorstores import FAISS
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_huggingface import HuggingFaceEndpointEmbeddings
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI
-from langchain.chains import RetrievalQA, create_retrieval_chain
+from langchain.chains import create_retrieval_chain
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from openai import AuthenticationError, RateLimitError, APIError
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app.settings import BASE_DIR
 
+logger = logging.getLogger(__name__)
+
 VECTOR_STORAGE_PATH = os.path.join(BASE_DIR, 'vector_stores')
 os.makedirs(VECTOR_STORAGE_PATH, exist_ok=True)
 
+DEFAULT_HF_MODEL = 'sentence-transformers/all-mpnet-base-v2'
+
+DEFAULT_PROMPT = ChatPromptTemplate.from_messages([
+    ('human', 'Context:\n{context}\n\nQuestion: {input}'),
+])
+
+
+def _build_embeddings_model(model, api_key, api_url_base, hf_api_token, hf_model):
+    if hf_api_token:
+        return HuggingFaceEndpointEmbeddings(
+            model=hf_model,
+            task='feature-extraction',
+            huggingfacehub_api_token=hf_api_token
+        )
+    return OpenAIEmbeddings(model=model, openai_api_base=api_url_base, openai_api_key=api_key)
+
 
 def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api_key=None,
-                                api_url_base=None, hf_api_token=None):
+                                api_url_base=None, hf_api_token=None, hf_model=DEFAULT_HF_MODEL):
     file_id = str(uuid.uuid4())
     storage_path = os.path.join(VECTOR_STORAGE_PATH, file_id)
     text_splitter = RecursiveCharacterTextSplitter(
@@ -29,50 +48,34 @@ def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api
     )
     docs = text_splitter.split_text(text=source_text)
     try:
-        if hf_api_token:
-            embeddings_model = HuggingFaceEndpointEmbeddings(
-                model='sentence-transformers/all-mpnet-base-v2',
-                task='feature-extraction',
-                huggingfacehub_api_token=hf_api_token
-            )
-        else:
-            embeddings_model = OpenAIEmbeddings(model=model, openai_api_base=api_url_base, openai_api_key=api_key)
+        embeddings_model = _build_embeddings_model(model, api_key, api_url_base, hf_api_token, hf_model)
         vector_store = FAISS.from_texts(docs, embeddings_model)
         vector_store.save_local(storage_path)
     except AuthenticationError as e:
-        print(e)
+        logger.exception(e)
         raise ValueError('Invalid API key or authentication error.') from e
-
     except RateLimitError as e:
-        print(e)
+        logger.exception(e)
         raise RuntimeError('API rate limit exceeded, please try again later') from e
-
     except APIError as e:
-        print(e)
-        raise RuntimeError(f'OpenAI server error.') from e
-
+        logger.exception(e)
+        raise RuntimeError('OpenAI server error.') from e
     except Exception as e:
-        print(e)
-        raise RuntimeError(f'Failed to create vector store.') from e
+        logger.exception(e)
+        raise RuntimeError('Failed to create vector store.') from e
 
     return file_id
 
 
 def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedding-ada-002', model='gpt-3.5-turbo',
-                               instructions='', api_key=None, api_url_base=None, hf_api_token=None):
+                               instructions='', api_key=None, api_url_base=None, hf_api_token=None,
+                               hf_model=DEFAULT_HF_MODEL):
     storage_path = os.path.join(VECTOR_STORAGE_PATH, file_uuid)
 
     if not os.path.exists(storage_path):
-        raise Exception(f'Error: Store with UUID \'{file_uuid}\' not found.')
+        raise FileNotFoundError(f"Store with UUID '{file_uuid}' not found.")
 
-    if hf_api_token:
-        embeddings_model = HuggingFaceEndpointEmbeddings(
-            model='sentence-transformers/all-mpnet-base-v2',
-            task='feature-extraction',
-            huggingfacehub_api_token=hf_api_token
-        )
-    else:
-        embeddings_model = OpenAIEmbeddings(model=embedding_model, openai_api_base=api_url_base, openai_api_key=api_key)
+    embeddings_model = _build_embeddings_model(embedding_model, api_key, api_url_base, hf_api_token, hf_model)
 
     vector_store = FAISS.load_local(
         storage_path,
@@ -80,27 +83,17 @@ def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedd
         allow_dangerous_deserialization=True
     )
 
-    llm = ChatOpenAI(model_name=model, temperature=0.7, openai_api_base=api_url_base, openai_api_key=api_key)
+    llm = ChatOpenAI(model_name=model, temperature=0, openai_api_base=api_url_base, openai_api_key=api_key)
 
-    if instructions:
-        prompt = ChatPromptTemplate.from_messages(
-            [
-                ('system', instructions + ' Context: {context}'),
-                ('human', "{input}"),
-            ]
-        )
-        question_answer_chain = create_stuff_documents_chain(llm, prompt)
-        qa_chain = create_retrieval_chain(vector_store.as_retriever(), question_answer_chain)
-        response = qa_chain.invoke({'input': question})
-        return response.get('answer')
-    else:
-        qa_chain = RetrievalQA.from_chain_type(
-            llm=llm,
-            chain_type='stuff',
-            retriever=vector_store.as_retriever()
-        )
-        response = qa_chain.invoke({'query': question})
-        return response.get('result')
+    prompt = ChatPromptTemplate.from_messages([
+        ('system', instructions),
+        ('human', 'Context:\n{context}\n\nQuestion: {input}'),
+    ]) if instructions else DEFAULT_PROMPT
+
+    question_answer_chain = create_stuff_documents_chain(llm, prompt)
+    qa_chain = create_retrieval_chain(vector_store.as_retriever(), question_answer_chain)
+    response = qa_chain.invoke({'input': question})
+    return response.get('answer')
 
 
 if __name__ == '__main__':
@@ -116,7 +109,7 @@ if __name__ == '__main__':
     """
 
     API_KEY = ''
-    API_URL_BASE = ''
+    API_URL_BASE = 'https://provider.name/api/v2/openai/v1/'
     MODEL_NAME = 'gpt-3.5-turbo'
     HF_API_TOKEN = ''
 
@@ -128,7 +121,7 @@ if __name__ == '__main__':
     #     hf_api_token=HF_API_TOKEN
     # )
     # print(f"База знаний сохранена с UUID: {saved_uuid}\n")
-    saved_uuid = 'c3f803bb-0139-479b-97dd-93106dd2e8e4'
+    saved_uuid = 'e20c695e-fdd5-4444-b4ec-be701d613b45'
 
     print("--- Получение ответа из базы знаний ---")
     user_question = "Кто основал компанию ТехноСфера и в каком году?"
@@ -143,4 +136,3 @@ if __name__ == '__main__':
 
     print(f"❓ Вопрос: {user_question}")
     print(f"🤖 Ответ: {answer}")
-
