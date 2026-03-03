@@ -92,12 +92,22 @@ def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedd
     ]) if instructions else DEFAULT_PROMPT
 
     question_answer_chain = create_stuff_documents_chain(llm, prompt)
-    qa_chain = create_retrieval_chain(vector_store.as_retriever(), question_answer_chain)
+    retriever = vector_store.as_retriever(
+        search_type='mmr',
+        search_kwargs={'k': 6, 'fetch_k': 20},
+    )
+    qa_chain = create_retrieval_chain(retriever, question_answer_chain)
     response = qa_chain.invoke({'input': question})
     return response.get('answer')
 
 
-_CODE_BLOCK_RE = re.compile(r'(```[\s\S]*?```|`[^`\n]+`)', re.MULTILINE)
+_CODE_BLOCK_RE = re.compile(
+    r'(```[\s\S]*?```'        # fenced code blocks
+    r'|`[^`\n]+`'             # inline code
+    r'|(?:^\|.+\|[ \t]*\n)+'  # consecutive markdown table rows
+    r')',
+    re.MULTILINE,
+)
 
 
 def _split_preserving_code_blocks(text: str, chunk_size: int, chunk_overlap: int,
@@ -137,16 +147,36 @@ def _split_preserving_code_blocks(text: str, chunk_size: int, chunk_overlap: int
     return result or [text]
 
 
-def _split_markdown_docs(source_text: str, chunk_size: int = 1500,
-                         chunk_overlap: int = 150) -> list[str]:
+def _get_parent_breadcrumb(metadata: dict) -> str:
+    """Return the breadcrumb of the parent header (all levels except the deepest)."""
+    parts = [metadata[k] for k in ('h1', 'h2', 'h3', 'h4') if metadata.get(k)]
+    return ' > '.join(parts[:-1]) if len(parts) > 1 else ''
+
+
+def _build_summary_chunk(source_text: str) -> str:
+    """Build a document overview chunk from h1/h2/h3 headings."""
+    heading_re = re.compile(r'^(#{1,3})\s+(.+)$', re.MULTILINE)
+    lines = []
+    for match in heading_re.finditer(source_text):
+        level = len(match.group(1))
+        indent = '  ' * (level - 1)
+        lines.append(f'{indent}- {match.group(2).strip()}')
+    if not lines:
+        return ''
+    return '[Document Overview]\n\n' + '\n'.join(lines)
+
+
+def _split_markdown_docs(source_text: str, chunk_size: int = 2000,
+                         chunk_overlap: int = 200) -> list[str]:
     """
     Smart chunking for Markdown documentation:
 
     1. Split by headers (##/###/####) — each section gets full breadcrumb path.
-    2. Code blocks are never split.
-    3. Sections that fit in chunk_size become one chunk.
+    2. Code blocks and markdown tables are never split.
+    3. Small sibling sections (same parent header) are merged if combined < chunk_size.
     4. Oversized sections are split by paragraphs/lines while protecting code blocks.
     5. The breadcrumb is prepended to every chunk so the LLM always knows the context.
+    6. A summary/index chunk is generated from h1/h2/h3 headings.
     """
     headers_to_split_on = [
         ('#', 'h1'),
@@ -166,17 +196,42 @@ def _split_markdown_docs(source_text: str, chunk_size: int = 1500,
 
     header_docs = md_splitter.split_text(source_text)
 
-    final_chunks: list[str] = []
-    for doc in header_docs:
+    # --- Merge small sibling sections ---
+    merged_docs = []
+    i = 0
+    while i < len(header_docs):
+        doc = header_docs[i]
         content = doc.page_content.strip()
+        metadata = dict(doc.metadata)
+        parent = _get_parent_breadcrumb(metadata)
+
+        # Try merging with following siblings that share the same parent
+        while (i + 1 < len(header_docs)
+               and _get_parent_breadcrumb(header_docs[i + 1].metadata) == parent
+               and parent  # only merge if there IS a parent (not top-level)
+               and len(content) + len(header_docs[i + 1].page_content) + 2 < chunk_size):
+            i += 1
+            content = content + '\n\n' + header_docs[i].page_content.strip()
+
+        merged_docs.append((metadata, content))
+        i += 1
+
+    # --- Build final chunks ---
+    final_chunks: list[str] = []
+
+    # Summary chunk
+    summary = _build_summary_chunk(source_text)
+    if summary:
+        final_chunks.append(summary)
+
+    for metadata, content in merged_docs:
         if not content:
             continue
 
-        # Build breadcrumb from header metadata (h1 > h2 > h3 > h4)
         breadcrumb_parts = [
-            doc.metadata[k]
+            metadata[k]
             for k in ('h1', 'h2', 'h3', 'h4')
-            if doc.metadata.get(k)
+            if metadata.get(k)
         ]
         breadcrumb = ' > '.join(breadcrumb_parts)
         prefix = f'[{breadcrumb}]\n\n' if breadcrumb else ''
@@ -194,7 +249,7 @@ def _split_markdown_docs(source_text: str, chunk_size: int = 1500,
 def create_docs_embeddings(source_text: str, model: str = 'text-embedding-ada-002',
                            api_key: str = None, api_url_base: str = None,
                            hf_api_token: str = None, hf_model: str = DEFAULT_HF_MODEL,
-                           chunk_size: int = 1500, chunk_overlap: int = 150) -> str:
+                           chunk_size: int = 2000, chunk_overlap: int = 200) -> str:
     """
     Docs mode: creates a vector store optimised for Markdown documentation.
 
