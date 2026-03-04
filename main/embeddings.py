@@ -38,7 +38,7 @@ def _build_embeddings_model(model, api_key, api_url_base, hf_api_token, hf_model
     return OpenAIEmbeddings(model=model, openai_api_base=api_url_base, openai_api_key=api_key)
 
 
-def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api_key=None,
+def create_and_store_embeddings(source_text, model='text-embedding-3-large', api_key=None,
                                 api_url_base=None, hf_api_token=None, hf_model=DEFAULT_HF_MODEL):
     file_id = str(uuid.uuid4())
     storage_path = os.path.join(VECTOR_STORAGE_PATH, file_id)
@@ -68,7 +68,7 @@ def create_and_store_embeddings(source_text, model='text-embedding-ada-002', api
     return file_id
 
 
-def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedding-ada-002', model='gpt-3.5-turbo',
+def get_answer_with_embeddings(question, file_uuid, embedding_model='text-embedding-3-large', model='gpt-3.5-turbo',
                                instructions='', api_key=None, api_url_base=None, hf_api_token=None,
                                hf_model=DEFAULT_HF_MODEL):
     storage_path = os.path.join(VECTOR_STORAGE_PATH, file_uuid)
@@ -246,7 +246,7 @@ def _split_markdown_docs(source_text: str, chunk_size: int = 2000,
     return final_chunks
 
 
-def create_docs_embeddings(source_text: str, model: str = 'text-embedding-ada-002',
+def create_docs_embeddings(source_text: str, model: str = 'text-embedding-3-large',
                            api_key: str = None, api_url_base: str = None,
                            hf_api_token: str = None, hf_model: str = DEFAULT_HF_MODEL,
                            chunk_size: int = 2000, chunk_overlap: int = 200) -> str:
@@ -299,111 +299,51 @@ if __name__ == '__main__':
     Финансовым директором с 2020 года является Елена Михайлова.
     """
 
+    API_URL_BASE = 'https://bothub.chat/api/v2/openai/v1'
     API_KEY = ''
-    API_URL_BASE = 'https://provider.name/api/v2/openai/v1/'
-    MODEL_NAME = 'gpt-3.5-turbo'
+    MODEL_NAME = 'gpt-4o'
+    EMBEDDING_MODEL_NAME = 'text-embedding-3-large'
     HF_API_TOKEN = ''
 
-    # ── Обычный режим ──────────────────────────────────────────────────────────
+    # ── Normal mode ──────────────────────────────────────────────────────────
     # saved_uuid = create_and_store_embeddings(
     #     knowledge_base_text,
     #     api_key=API_KEY,
     #     api_url_base=API_URL_BASE,
     #     hf_api_token=HF_API_TOKEN
     # )
-    saved_uuid = 'e20c695e-fdd5-4444-b4ec-be701d613b45'
+    # saved_uuid = 'e20c695e-fdd5-4444-b4ec-be701d613b45'
 
-    # ── Docs режим (умная разбивка для MD-документации) ───────────────────────
-    docs_md = """
-# Authentication
+    # ── Docs mode (Smart breakdown for MD documentation) ───────────────────────
+    doc_file_path = '/var/www/api2app-frontend/docs/JSON_FORMAT.md'
+    with open(doc_file_path, 'r', encoding='utf-8') as f:
+        docs_md = f.read()
 
-All requests require a Bearer token in the `Authorization` header.
-
-## Getting a token
-
-Send a POST request to `/auth/token`:
-
-```bash
-curl -X POST https://api.example.com/auth/token \\
-  -H "Content-Type: application/json" \\
-  -d '{"client_id": "YOUR_ID", "client_secret": "YOUR_SECRET"}'
-```
-
-Response:
-
-```json
-{
-  "access_token": "eyJ...",
-  "expires_in": 3600
-}
-```
-
-## Refreshing a token
-
-When the token expires, call `/auth/refresh` with your `refresh_token`.
-
-```python
-import requests
-
-resp = requests.post(
-    "https://api.example.com/auth/refresh",
-    json={"refresh_token": "<token>"},
-)
-new_token = resp.json()["access_token"]
-```
-
-# Endpoints
-
-## Users
-
-### GET /users
-
-Returns a paginated list of users.
-
-| Parameter | Type   | Description          |
-|-----------|--------|----------------------|
-| page      | int    | Page number (1-based)|
-| per_page  | int    | Items per page (max 100)|
-
-```bash
-curl https://api.example.com/users?page=1&per_page=20 \\
-  -H "Authorization: Bearer $TOKEN"
-```
-"""
-
-    # Посмотреть на чанки без создания индекса:
+    # View chunks without creating an index:
     chunks = _split_markdown_docs(docs_md)
     print(f"--- Docs mode: {len(chunks)} chunks ---")
     for i, c in enumerate(chunks, 1):
         print(f"\n[chunk {i}]\n{c}")
 
-    # Создать реальный индекс:
-    # docs_uuid = create_docs_embeddings(
-    #     docs_md,
-    #     api_key=API_KEY,
-    #     api_url_base=API_URL_BASE,
-    # )
-    # print(f"Docs knowledge base UUID: {docs_uuid}")
-    #
-    # answer = get_answer_with_embeddings(
-    #     "How do I refresh an expired token?",
-    #     docs_uuid,
-    #     model=MODEL_NAME,
-    #     api_key=API_KEY,
-    #     api_url_base=API_URL_BASE,
-    # )
-    # print(f"Answer: {answer}")
+    # Create a real index:
+    saved_uuid = create_docs_embeddings(
+        docs_md,
+        api_key=API_KEY,
+        api_url_base=API_URL_BASE,
+        model=EMBEDDING_MODEL_NAME
+    )
+    print(f"Docs knowledge base UUID: {saved_uuid}")
 
-    print("\n--- Обычный режим ---")
-    user_question = "Кто основал компанию ТехноСфера и в каком году?"
+    user_question = "О чём контекст?"
     answer = get_answer_with_embeddings(
         user_question,
         saved_uuid,
         model=MODEL_NAME,
         api_key=API_KEY,
         api_url_base=API_URL_BASE,
-        hf_api_token=HF_API_TOKEN
+        hf_api_token=HF_API_TOKEN,
+        embedding_model=EMBEDDING_MODEL_NAME
     )
 
-    print(f"Вопрос: {user_question}")
-    print(f"Ответ: {answer}")
+    print(f"Question: {user_question}")
+    print(f"Answer: {answer}")
