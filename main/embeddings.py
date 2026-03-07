@@ -299,10 +299,10 @@ if __name__ == '__main__':
     Финансовым директором с 2020 года является Елена Михайлова.
     """
 
-    API_URL_BASE = 'https://bothub.chat/api/v2/openai/v1'
+    API_URL_BASE = 'https://routerai.ru/api/v1'
     API_KEY = ''
-    MODEL_NAME = 'gpt-4o'
-    EMBEDDING_MODEL_NAME = 'text-embedding-3-large'
+    MODEL_NAME = 'minimax/minimax-m2.5'
+    EMBEDDING_MODEL_NAME = 'openai/text-embedding-3-large'
     HF_API_TOKEN = ''
 
     # ── Normal mode ──────────────────────────────────────────────────────────
