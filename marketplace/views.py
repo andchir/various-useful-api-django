@@ -10,6 +10,58 @@ from rest_framework import serializers
 from rest_framework.pagination import PageNumberPagination
 from drf_spectacular.utils import extend_schema, inline_serializer
 
+TRANSLATIONS = {
+    'store_not_found': {
+        'ru': 'Магазин не найден',
+        'en': 'Store not found',
+    },
+    'store_not_found_or_invalid_uuid': {
+        'ru': 'Магазин не найден или неверный write_uuid',
+        'en': 'Store not found or invalid write_uuid',
+    },
+    'store_deleted': {
+        'ru': 'Магазин успешно удалён',
+        'en': 'Store deleted successfully',
+    },
+    'menu_item_not_found': {
+        'ru': 'Позиция меню не найдена',
+        'en': 'Menu item not found',
+    },
+    'menu_item_not_found_or_wrong_store': {
+        'ru': 'Позиция меню не найдена или не принадлежит этому магазину',
+        'en': 'Menu item not found or does not belong to this store',
+    },
+    'menu_item_deleted': {
+        'ru': 'Позиция меню успешно удалена',
+        'en': 'Menu item deleted successfully',
+    },
+    'cart_not_found': {
+        'ru': 'Корзина не найдена',
+        'en': 'Cart not found',
+    },
+    'item_not_in_cart': {
+        'ru': 'Товар не найден в корзине',
+        'en': 'Item not in cart',
+    },
+    'invalid_date_from': {
+        'ru': 'Неверный формат date_from. Используйте YYYY-MM-DD',
+        'en': 'Invalid date_from format. Use YYYY-MM-DD',
+    },
+    'invalid_date_to': {
+        'ru': 'Неверный формат date_to. Используйте YYYY-MM-DD',
+        'en': 'Invalid date_to format. Use YYYY-MM-DD',
+    },
+}
+
+
+def get_lang(request):
+    lang = request.query_params.get('lang', 'ru')
+    return lang if lang in ('ru', 'en') else 'ru'
+
+
+def t(key, lang):
+    return TRANSLATIONS[key].get(lang, TRANSLATIONS[key]['ru'])
+
 from marketplace.models import StoreModel, StoreProductModel, CartModel, CartItemModel
 from marketplace.serializers import (
     StoreCreateSerializer, StoreResponseSerializer, StoreUpdateSerializer,
@@ -44,6 +96,7 @@ def store_create(request):
     Create a new store.
     Returns store data including read_uuid and write_uuid.
     """
+    lang = get_lang(request)
     try:
         serializer = StoreCreateSerializer(data=request.data)
         if serializer.is_valid():
@@ -72,11 +125,12 @@ def store_update(request, write_uuid):
     Update store details using write_uuid.
     Requires write_uuid for authorization.
     """
+    lang = get_lang(request)
     try:
         try:
             store = StoreModel.objects.get(write_uuid=write_uuid)
         except StoreModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+            return Response({'success': False, 'message': t('store_not_found_or_invalid_uuid', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         serializer = StoreUpdateSerializer(store, data=request.data, partial=True)
@@ -106,11 +160,12 @@ def menu_item_create(request, write_uuid):
     Create a new menu item for a store.
     Requires store's write_uuid for authorization.
     """
+    lang = get_lang(request)
     try:
         try:
             store = StoreModel.objects.get(write_uuid=write_uuid)
         except StoreModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+            return Response({'success': False, 'message': t('store_not_found_or_invalid_uuid', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         serializer = StoreProductCreateSerializer(data=request.data)
@@ -144,11 +199,12 @@ def store_menu_list(request, read_uuid):
     Get store details and menu items list by read_uuid.
     Returns store info (excluding write_uuid) and all menu items.
     """
+    lang = get_lang(request)
     try:
         try:
             store = StoreModel.objects.get(read_uuid=read_uuid)
         except StoreModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Store not found'},
+            return Response({'success': False, 'message': t('store_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         store_serializer = StorePublicSerializer(store, context={'request': request})
@@ -178,17 +234,18 @@ def menu_item_detail(request, read_uuid, product_uuid):
     Get single menu item details by product UUID using store's read_uuid.
     Returns menu item information.
     """
+    lang = get_lang(request)
     try:
         try:
             store = StoreModel.objects.get(read_uuid=read_uuid)
         except StoreModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Store not found'},
+            return Response({'success': False, 'message': t('store_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         try:
             menu_item = StoreProductModel.objects.get(uuid=product_uuid, store=store)
         except StoreProductModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Menu item not found or does not belong to this store'},
+            return Response({'success': False, 'message': t('menu_item_not_found_or_wrong_store', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         serializer = MenuItemResponseSerializer(menu_item, context={'request': request})
@@ -214,11 +271,12 @@ def cart_create(request, read_uuid):
     Requires store's read_uuid.
     Returns cart with UUID.
     """
+    lang = get_lang(request)
     try:
         try:
             store = StoreModel.objects.get(read_uuid=read_uuid)
         except StoreModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Store not found'},
+            return Response({'success': False, 'message': t('store_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         cart = CartModel.objects.create(store=store)
@@ -245,11 +303,12 @@ def cart_add_item(request, cart_uuid):
     Add a menu item to cart or update quantity if already exists.
     Returns full cart contents with total price.
     """
+    lang = get_lang(request)
     try:
         try:
             cart = CartModel.objects.get(uuid=cart_uuid)
         except CartModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Cart not found'},
+            return Response({'success': False, 'message': t('cart_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         serializer = AddToCartSerializer(data=request.data)
@@ -263,7 +322,7 @@ def cart_add_item(request, cart_uuid):
         try:
             menu_item = StoreProductModel.objects.get(uuid=menu_item_uuid, store=cart.store)
         except StoreProductModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Menu item not found or does not belong to this store'},
+            return Response({'success': False, 'message': t('menu_item_not_found_or_wrong_store', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         # Check if item already in cart, update quantity or create new
@@ -300,11 +359,12 @@ def cart_remove_item(request, cart_uuid):
     Remove a menu item from cart.
     Returns full cart contents with total price.
     """
+    lang = get_lang(request)
     try:
         try:
             cart = CartModel.objects.get(uuid=cart_uuid)
         except CartModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Cart not found'},
+            return Response({'success': False, 'message': t('cart_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         serializer = RemoveFromCartSerializer(data=request.data)
@@ -317,14 +377,14 @@ def cart_remove_item(request, cart_uuid):
         try:
             menu_item = StoreProductModel.objects.get(uuid=menu_item_uuid)
         except StoreProductModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Menu item not found'},
+            return Response({'success': False, 'message': t('menu_item_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         try:
             cart_item = CartItemModel.objects.get(cart=cart, menu_item=menu_item)
             cart_item.delete()
         except CartItemModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Item not in cart'},
+            return Response({'success': False, 'message': t('item_not_in_cart', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         response_serializer = CartResponseSerializer(cart, context={'request': request})
@@ -355,15 +415,16 @@ def store_delete(request, write_uuid):
     Delete a store using write_uuid.
     Requires write_uuid for authorization.
     """
+    lang = get_lang(request)
     try:
         try:
             store = StoreModel.objects.get(write_uuid=write_uuid)
         except StoreModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+            return Response({'success': False, 'message': t('store_not_found_or_invalid_uuid', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         store.delete()
-        return Response({'success': True, 'message': 'Store deleted successfully'},
+        return Response({'success': True, 'message': t('store_deleted', lang)},
                       status=status.HTTP_200_OK)
     except Exception as e:
         logger.error(f"Store deletion error: {str(e)}")
@@ -386,17 +447,18 @@ def menu_item_update(request, write_uuid, product_uuid):
     Update a menu item for a store.
     Requires store's write_uuid for authorization.
     """
+    lang = get_lang(request)
     try:
         try:
             store = StoreModel.objects.get(write_uuid=write_uuid)
         except StoreModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+            return Response({'success': False, 'message': t('store_not_found_or_invalid_uuid', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         try:
             menu_item = StoreProductModel.objects.get(uuid=product_uuid, store=store)
         except StoreProductModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Menu item not found or does not belong to this store'},
+            return Response({'success': False, 'message': t('menu_item_not_found_or_wrong_store', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         serializer = StoreProductUpdateSerializer(menu_item, data=request.data, partial=True)
@@ -431,21 +493,22 @@ def menu_item_delete(request, write_uuid, product_uuid):
     Delete a menu item for a store.
     Requires store's write_uuid for authorization.
     """
+    lang = get_lang(request)
     try:
         try:
             store = StoreModel.objects.get(write_uuid=write_uuid)
         except StoreModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+            return Response({'success': False, 'message': t('store_not_found_or_invalid_uuid', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         try:
             menu_item = StoreProductModel.objects.get(uuid=product_uuid, store=store)
         except StoreProductModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Menu item not found or does not belong to this store'},
+            return Response({'success': False, 'message': t('menu_item_not_found_or_wrong_store', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         menu_item.delete()
-        return Response({'success': True, 'message': 'Menu item deleted successfully'},
+        return Response({'success': True, 'message': t('menu_item_deleted', lang)},
                       status=status.HTTP_200_OK)
     except Exception as e:
         logger.error(f"Menu item deletion error: {str(e)}")
@@ -483,11 +546,12 @@ def cart_list(request, write_uuid):
     Requires store's write_uuid for authorization.
     Filter by status, date_from, date_to (optional).
     """
+    lang = get_lang(request)
     try:
         try:
             store = StoreModel.objects.get(write_uuid=write_uuid)
         except StoreModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Store not found or invalid write_uuid'},
+            return Response({'success': False, 'message': t('store_not_found_or_invalid_uuid', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         carts = CartModel.objects.filter(store=store)
@@ -503,7 +567,7 @@ def cart_list(request, write_uuid):
                 date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
                 carts = carts.filter(date_created__date__gte=date_from_obj)
             except ValueError:
-                return Response({'success': False, 'message': 'Invalid date_from format. Use YYYY-MM-DD'},
+                return Response({'success': False, 'message': t('invalid_date_from', lang)},
                               status=status.HTTP_400_BAD_REQUEST)
 
         date_to = request.query_params.get('date_to')
@@ -512,7 +576,7 @@ def cart_list(request, write_uuid):
                 date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
                 carts = carts.filter(date_created__date__lte=date_to_obj)
             except ValueError:
-                return Response({'success': False, 'message': 'Invalid date_to format. Use YYYY-MM-DD'},
+                return Response({'success': False, 'message': t('invalid_date_to', lang)},
                               status=status.HTTP_400_BAD_REQUEST)
 
         # Order by creation date descending
@@ -544,11 +608,12 @@ def cart_status_update(request, cart_uuid):
     """
     Update cart status by cart uuid.
     """
+    lang = get_lang(request)
     try:
         try:
             cart = CartModel.objects.get(uuid=cart_uuid)
         except CartModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Cart not found'},
+            return Response({'success': False, 'message': t('cart_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         serializer = CartStatusUpdateSerializer(data=request.data)
@@ -579,11 +644,12 @@ def cart_clear_items(request, cart_uuid):
     Delete all items from cart by cart uuid.
     Returns empty cart with total price 0.
     """
+    lang = get_lang(request)
     try:
         try:
             cart = CartModel.objects.get(uuid=cart_uuid)
         except CartModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Cart not found'},
+            return Response({'success': False, 'message': t('cart_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         # Delete all cart items
@@ -615,11 +681,12 @@ def checkout_order(request, cart_uuid):
     Updates cart with buyer information (optional fields) and sets status to 'sent'.
     Returns updated cart with buyer information.
     """
+    lang = get_lang(request)
     try:
         try:
             cart = CartModel.objects.get(uuid=cart_uuid)
         except CartModel.DoesNotExist:
-            return Response({'success': False, 'message': 'Cart not found'},
+            return Response({'success': False, 'message': t('cart_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
 
         serializer = CheckoutSerializer(data=request.data)
