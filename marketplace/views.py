@@ -51,6 +51,10 @@ TRANSLATIONS = {
         'ru': 'Неверный формат date_to. Используйте YYYY-MM-DD',
         'en': 'Invalid date_to format. Use YYYY-MM-DD',
     },
+    'cart_is_empty': {
+        'ru': 'Корзина пуста. Добавьте товары перед оформлением заказа',
+        'en': 'Cart is empty. Add items before placing an order',
+    },
 }
 
 
@@ -688,6 +692,10 @@ def checkout_order(request, cart_uuid):
         except CartModel.DoesNotExist:
             return Response({'success': False, 'message': t('cart_not_found', lang)},
                           status=status.HTTP_404_NOT_FOUND)
+
+        if not CartItemModel.objects.filter(cart=cart).exists():
+            return Response({'success': False, 'message': t('cart_is_empty', lang)},
+                          status=status.HTTP_400_BAD_REQUEST)
 
         serializer = CheckoutSerializer(data=request.data)
         if not serializer.is_valid():
